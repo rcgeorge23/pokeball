@@ -1,18 +1,16 @@
 import Phaser from 'phaser';
 
-class BlankScene extends Phaser.Scene {
-  create(): void {
-    this.cameras.main.setBackgroundColor('#1b1f2a');
-  }
-}
+import { BootScene } from './scenes/boot_scene';
+import { PreloadScene } from './scenes/preload_scene';
+import { WorldScene } from './scenes/world_scene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: 800,
   height: 600,
   parent: 'app',
-  scene: [BlankScene],
-  backgroundColor: '#1b1f2a',
+  scene: [BootScene, PreloadScene, WorldScene],
+  backgroundColor: '#0f172a',
 };
 
 new Phaser.Game(config);
