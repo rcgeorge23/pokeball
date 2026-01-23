@@ -1,0 +1,29 @@
+[
+  {
+    "id": "emberfox",
+    "name": "Emberfox",
+    "hp": 48,
+    "attack": 12,
+    "defense": 8,
+    "speed": 11,
+    "moves": ["tackle", "ember"]
+  },
+  {
+    "id": "leafling",
+    "name": "Leafling",
+    "hp": 52,
+    "attack": 10,
+    "defense": 10,
+    "speed": 9,
+    "moves": ["tackle", "leaf_blade"]
+  },
+  {
+    "id": "sparko",
+    "name": "Sparko",
+    "hp": 44,
+    "attack": 13,
+    "defense": 7,
+    "speed": 13,
+    "moves": ["tackle", "spark"]
+  }
+]

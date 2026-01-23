@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 import { BootScene } from './scenes/boot_scene';
+import { BattleScene } from './scenes/battle_scene';
 import { PreloadScene } from './scenes/preload_scene';
 import { WorldScene } from './scenes/world_scene';
 
@@ -16,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloadScene, WorldScene],
+  scene: [BootScene, PreloadScene, WorldScene, BattleScene],
   backgroundColor: '#0f172a',
 };
 

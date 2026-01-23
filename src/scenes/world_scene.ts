@@ -15,6 +15,7 @@ export class WorldScene extends Phaser.Scene {
   private hintText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
+  private playerParty: string[] = ['emberfox'];
 
   constructor() {
     super('WorldScene');
@@ -137,10 +138,17 @@ export class WorldScene extends Phaser.Scene {
       this.interactKey &&
       Phaser.Input.Keyboard.JustDown(this.interactKey)
     ) {
-      const opponentName = this.nearbyTrainer.definition.name;
-      this.statusText?.setText(
-        `You challenge ${opponentName}. Battle scene coming soon!`
-      );
+      this.statusText?.setText('Battle starting...');
+      this.scene.start('BattleScene', {
+        player: {
+          name: 'You',
+          party: this.playerParty,
+        },
+        opponent: {
+          name: this.nearbyTrainer.definition.name,
+          party: this.nearbyTrainer.definition.party,
+        },
+      });
     }
   }
 }
