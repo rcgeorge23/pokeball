@@ -1,9 +1,20 @@
 import Phaser from 'phaser';
 
+import {
+  NpcController,
+  TrainerDefinition,
+  TrainerInstance,
+} from '../world/npc_controller';
+
 export class WorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: Record<string, Phaser.Input.Keyboard.Key>;
   private player?: Phaser.Physics.Arcade.Image;
+  private interactKey?: Phaser.Input.Keyboard.Key;
+  private npcController?: NpcController;
+  private hintText?: Phaser.GameObjects.Text;
+  private statusText?: Phaser.GameObjects.Text;
+  private nearbyTrainer: TrainerInstance | null = null;
 
   constructor() {
     super('WorldScene');
@@ -44,6 +55,20 @@ export class WorldScene extends Phaser.Scene {
       string,
       Phaser.Input.Keyboard.Key
     >;
+    this.interactKey = this.input.keyboard?.addKey(
+      Phaser.Input.Keyboard.KeyCodes.E
+    );
+
+    const trainerData =
+      this.cache.json.get('trainers') ?? ([] as TrainerDefinition[]);
+    this.npcController = new NpcController(
+      this,
+      trainerData as TrainerDefinition[]
+    );
+
+    this.npcController.getInstances().forEach((trainer) => {
+      this.physics.add.collider(trainer.sprite, walls);
+    });
 
     this.add
       .text(24, 24, 'Move with WASD or arrow keys', {
@@ -51,9 +76,23 @@ export class WorldScene extends Phaser.Scene {
         color: '#e2e8f0',
       })
       .setScrollFactor(0);
+
+    this.hintText = this.add
+      .text(24, height - 48, '', {
+        fontSize: '16px',
+        color: '#f8fafc',
+      })
+      .setScrollFactor(0);
+
+    this.statusText = this.add
+      .text(24, height - 24, '', {
+        fontSize: '14px',
+        color: '#94a3b8',
+      })
+      .setScrollFactor(0);
   }
 
-  update(): void {
+  update(time: number): void {
     if (!this.player || !this.cursors || !this.moveKeys) {
       return;
     }
@@ -76,5 +115,32 @@ export class WorldScene extends Phaser.Scene {
 
     velocity.normalize().scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
+
+    this.npcController?.update(time);
+    this.nearbyTrainer = this.npcController?.findNearbyTrainer(
+      this.player,
+      80
+    );
+
+    if (this.hintText) {
+      if (this.nearbyTrainer) {
+        this.hintText.setText(
+          `Press E to battle ${this.nearbyTrainer.definition.name}`
+        );
+      } else {
+        this.hintText.setText('');
+      }
+    }
+
+    if (
+      this.nearbyTrainer &&
+      this.interactKey &&
+      Phaser.Input.Keyboard.JustDown(this.interactKey)
+    ) {
+      const opponentName = this.nearbyTrainer.definition.name;
+      this.statusText?.setText(
+        `You challenge ${opponentName}. Battle scene coming soon!`
+      );
+    }
   }
 }

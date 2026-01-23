@@ -10,6 +10,10 @@ export class PreloadScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('player', PLAYER_DATA_URI);
+    this.load.json(
+      'trainers',
+      new URL('../data/trainers.json', import.meta.url).toString()
+    );
   }
 
   create(): void {
