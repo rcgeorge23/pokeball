@@ -9,6 +9,8 @@ import {
   PokemonInstance,
   TrainerState,
 } from '../battle/battle_model';
+import { applyVictoryReward } from '../battle/rewards';
+import { addPokemonToPokedex } from '../player/player_model';
 
 interface BattleSceneData {
   player: {
@@ -33,6 +35,7 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpText?: Phaser.GameObjects.Text;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
+  private rewardText?: Phaser.GameObjects.Text;
 
   constructor() {
     super('BattleScene');
@@ -231,11 +234,28 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
 
+    let rewardMessage = '';
+    if (result === 'win' && this.opponentTrainer) {
+      const reward = applyVictoryReward(
+        this.opponentTrainer,
+        addPokemonToPokedex
+      );
+      rewardMessage = `You received: ${reward.pokemon.name}`;
+    }
+
     const message =
       result === 'win'
         ? `You won against ${this.opponentTrainer?.name}!`
         : `${this.opponentTrainer?.name} defeated you.`;
     this.logText?.setText(message);
+    if (rewardMessage) {
+      this.rewardText = this.add
+        .text(24, this.scale.height - 128, rewardMessage, {
+          fontSize: '16px',
+          color: '#fde68a',
+        })
+        .setScrollFactor(0);
+    }
 
     const buttonWidth = 200;
     const buttonHeight = 52;
