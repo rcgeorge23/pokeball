@@ -1,0 +1,26 @@
+[
+  {
+    "id": "trainer-park-1",
+    "name": "Ava",
+    "party": ["emberfox"],
+    "behavior": "wander",
+    "x": 320,
+    "y": 260
+  },
+  {
+    "id": "trainer-park-2",
+    "name": "Rowan",
+    "party": ["leafling"],
+    "behavior": "stationary",
+    "x": 820,
+    "y": 340
+  },
+  {
+    "id": "trainer-park-3",
+    "name": "Kai",
+    "party": ["sparko"],
+    "behavior": "wander",
+    "x": 600,
+    "y": 760
+  }
+]
