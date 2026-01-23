@@ -4,7 +4,7 @@ This document is a practical, incremental plan for building a **browser-only**, 
 
 ## Goals (MVP)
 
-- Top-down 2D world with a controllable trainer (keyboard)
+- Top-down 2D world with a controllable trainer (touch + optional keyboard)
 - NPC trainers roam or stand in the world
 - Player can initiate battles with trainers
 - Turn-based battle flow (simple stats + moves)
@@ -23,7 +23,7 @@ This document is a practical, incremental plan for building a **browser-only**, 
 
 ## Tech Choices (recommended)
 
-**Rendering / Game Framework:** Phaser 3  
+**Rendering / Game Framework:** Phaser 3 (mobile-friendly canvas + input)  
 **Language:** TypeScript  
 **Build tooling:** Vite  
 **State/persistence:** in-memory + localStorage (or IndexedDB later)  
@@ -89,9 +89,13 @@ This document is a practical, incremental plan for building a **browser-only**, 
 - [ ] Add basic linting/formatting (optional but helpful):
   - [ ] ESLint + Prettier
 - [ ] Create initial entrypoint (`src/main.ts`) that boots a Phaser game.
+- [ ] Configure responsive sizing for mobile:
+  - [ ] Use `Phaser.Scale.FIT` + `autoCenter` to adapt to touch devices
+  - [ ] Set `input.activePointers` for multi-touch
+  - [ ] Disable browser touch scrolling on the game canvas
 
 **Acceptance criteria**
-- [ ] `npm run dev` opens a canvas and shows a solid background scene.
+- [ ] `npm run dev` opens a canvas and shows a solid background scene that fits a phone viewport.
 
 ---
 
@@ -103,9 +107,12 @@ This document is a practical, incremental plan for building a **browser-only**, 
   - [ ] `PreloadScene`: loads placeholder assets
   - [ ] `WorldScene`: renders a simple world
 - [ ] Add a `SceneManager` or simple scene registration in `main.ts`.
+- [ ] Add a simple touch input adapter in `engine/input.ts`:
+  - [ ] Normalize touch input to movement vectors
+  - [ ] Support on-screen controls (virtual joystick or D-pad)
 
 **Acceptance criteria**
-- [ ] App loads assets and transitions into WorldScene automatically.
+- [ ] App loads assets and transitions into WorldScene automatically, with touch input initialized.
 
 ---
 
@@ -113,12 +120,14 @@ This document is a practical, incremental plan for building a **browser-only**, 
 **Deliverable:** Player sprite moves with collisions in a simple map.
 
 - [ ] Add a placeholder player sprite (square, simple sprite sheet, or a static image).
-- [ ] Implement keyboard movement (WASD or arrow keys).
+- [ ] Implement touch-first movement:
+  - [ ] On-screen joystick/D-pad for movement
+  - [ ] Optional keyboard support for desktop testing
 - [ ] Add a basic tilemap (even 1 screen) or a simple world with collision rectangles.
 - [ ] Add camera follow.
 
 **Acceptance criteria**
-- [ ] Player moves smoothly and cannot walk through collision areas.
+- [ ] Player moves smoothly via touch controls and cannot walk through collision areas.
 
 ---
 
@@ -131,11 +140,11 @@ This document is a practical, incremental plan for building a **browser-only**, 
 - [ ] Implement:
   - [ ] “wander” movement (random step every few seconds)
   - [ ] interaction detection:
-    - [ ] press `E` / `Space` near trainer, OR collision-based trigger
-- [ ] Add minimal UI hint: “Press E to battle”.
+    - [ ] tap trainer or tap action button, OR collision-based trigger
+- [ ] Add minimal UI hint: “Tap to battle”.
 
 **Acceptance criteria**
-- [ ] Multiple trainers appear; player can trigger battle with one.
+- [ ] Multiple trainers appear; player can trigger battle with one via touch.
 
 ---
 
@@ -159,9 +168,10 @@ This document is a practical, incremental plan for building a **browser-only**, 
   - [ ] HP bars
   - [ ] move buttons
   - [ ] text log (“X used Tackle!”)
+- [ ] Ensure buttons are large enough for touch targets (min ~44px)
 
 **Acceptance criteria**
-- [ ] Player can win/lose a battle; battle ends and returns to WorldScene.
+- [ ] Player can win/lose a battle using touch UI; battle ends and returns to WorldScene.
 
 ---
 
@@ -258,7 +268,9 @@ Pick enhancements one at a time:
 - [ ] Pokédex screen (list owned Pokémon)
 - [ ] Controls screen
 - [ ] Sound effects + music hooks
-- [ ] Mobile controls (optional later)
+- [ ] Mobile controls polish:
+  - [ ] Large touch targets, safe areas, and haptic feedback hooks (if available)
+  - [ ] Orientation handling (portrait-first)
 
 **Acceptance criteria**
 - [ ] Game is playable end-to-end with clear UI.
