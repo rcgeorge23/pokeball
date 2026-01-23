@@ -14,6 +14,14 @@ export class PreloadScene extends Phaser.Scene {
       'trainers',
       new URL('../data/trainers.json', import.meta.url).toString()
     );
+    this.load.json(
+      'pokemon',
+      new URL('../data/pokemon.json', import.meta.url).toString()
+    );
+    this.load.json(
+      'moves',
+      new URL('../data/moves.json', import.meta.url).toString()
+    );
   }
 
   create(): void {

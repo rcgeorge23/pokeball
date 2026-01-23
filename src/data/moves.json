@@ -1,0 +1,22 @@
+[
+  {
+    "id": "tackle",
+    "name": "Tackle",
+    "power": 12
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "power": 14
+  },
+  {
+    "id": "leaf_blade",
+    "name": "Leaf Blade",
+    "power": 13
+  },
+  {
+    "id": "spark",
+    "name": "Spark",
+    "power": 15
+  }
+]
