@@ -5,6 +5,7 @@ import {
   TrainerDefinition,
   TrainerInstance,
 } from '../world/npc_controller';
+import { getPlayerState, PlayerState } from '../player/player_model';
 
 export class WorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -15,7 +16,7 @@ export class WorldScene extends Phaser.Scene {
   private hintText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
-  private playerParty: string[] = ['emberfox'];
+  private playerState: PlayerState = getPlayerState();
 
   constructor() {
     super('WorldScene');
@@ -86,7 +87,7 @@ export class WorldScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     this.statusText = this.add
-      .text(24, height - 24, '', {
+      .text(24, height - 24, `Pokédex: ${this.playerState.pokedex.length}`, {
         fontSize: '14px',
         color: '#94a3b8',
       })
@@ -141,8 +142,8 @@ export class WorldScene extends Phaser.Scene {
       this.statusText?.setText('Battle starting...');
       this.scene.start('BattleScene', {
         player: {
-          name: 'You',
-          party: this.playerParty,
+          name: this.playerState.name,
+          party: this.playerState.party,
         },
         opponent: {
           name: this.nearbyTrainer.definition.name,
