@@ -56,6 +56,20 @@ export function addPokemonToPokedex(pokemonId: string): void {
   }
 }
 
+export function isTrainerDefeated(trainerId: string): boolean {
+  return currentState.defeatedTrainerIds.includes(trainerId);
+}
+
+export function markTrainerDefeated(trainerId: string): void {
+  if (!currentState.defeatedTrainerIds.includes(trainerId)) {
+    currentState = {
+      ...currentState,
+      defeatedTrainerIds: [...currentState.defeatedTrainerIds, trainerId],
+    };
+    savePlayerState(currentState);
+  }
+}
+
 export function updatePlayerPosition(x: number, y: number): void {
   currentState = {
     ...currentState,

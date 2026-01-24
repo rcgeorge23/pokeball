@@ -10,7 +10,11 @@ import {
   TrainerState,
 } from '../battle/battle_model';
 import { applyVictoryReward } from '../battle/rewards';
-import { addPokemonToPokedex } from '../player/player_model';
+import {
+  addPokemonToPokedex,
+  isTrainerDefeated,
+  markTrainerDefeated,
+} from '../player/player_model';
 
 interface BattleSceneData {
   player: {
@@ -18,8 +22,10 @@ interface BattleSceneData {
     party: string[];
   };
   opponent: {
+    id: string;
     name: string;
     party: string[];
+    defeated?: boolean;
   };
 }
 
@@ -35,12 +41,21 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpText?: Phaser.GameObjects.Text;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
+  private opponentTrainerId?: string;
+  private opponentAlreadyDefeated = false;
 
   constructor() {
     super('BattleScene');
   }
 
   create(data: BattleSceneData): void {
+    this.opponentTrainerId = data.opponent.id;
+    this.opponentAlreadyDefeated =
+      data.opponent.defeated ??
+      (this.opponentTrainerId
+        ? isTrainerDefeated(this.opponentTrainerId)
+        : false);
+
     const pokemonData =
       (this.cache.json.get('pokemon') as PokemonDefinition[]) ?? [];
     const moveData = (this.cache.json.get('moves') as MoveDefinition[]) ?? [];
@@ -234,12 +249,20 @@ export class BattleScene extends Phaser.Scene {
     this.setButtonsEnabled(false);
 
     let rewardMessage = '';
-    if (result === 'win' && this.opponentTrainer) {
+    if (
+      result === 'win' &&
+      this.opponentTrainer &&
+      !this.opponentAlreadyDefeated
+    ) {
       const reward = applyVictoryReward(
         this.opponentTrainer,
         addPokemonToPokedex
       );
       rewardMessage = `You received: ${reward.pokemon.name}`;
+
+      if (this.opponentTrainerId) {
+        markTrainerDefeated(this.opponentTrainerId);
+      }
     }
 
     const message =
