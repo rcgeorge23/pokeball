@@ -5,7 +5,12 @@ import {
   TrainerDefinition,
   TrainerInstance,
 } from '../world/npc_controller';
-import { getPlayerState, PlayerState } from '../player/player_model';
+import {
+  getPlayerState,
+  persistPlayerState,
+  PlayerState,
+  updatePlayerPosition,
+} from '../player/player_model';
 
 export class WorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -16,7 +21,8 @@ export class WorldScene extends Phaser.Scene {
   private hintText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
-  private playerState: PlayerState = getPlayerState();
+  private playerState!: PlayerState;
+  private lastSaveTime = 0;
 
   constructor() {
     super('WorldScene');
@@ -26,10 +32,18 @@ export class WorldScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const worldWidth = width * 2;
     const worldHeight = height * 2;
+    this.playerState = getPlayerState();
 
     this.add.rectangle(0, 0, worldWidth, worldHeight, 0x1e293b).setOrigin(0);
 
-    this.player = this.physics.add.image(width / 2, height / 2, 'player');
+    const playerStartX = this.playerState.position?.x ?? width / 2;
+    const playerStartY = this.playerState.position?.y ?? height / 2;
+
+    this.player = this.physics.add.image(
+      playerStartX,
+      playerStartY,
+      'player'
+    );
     this.player.setScale(4);
     this.player.setCollideWorldBounds(true);
 
@@ -87,10 +101,15 @@ export class WorldScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     this.statusText = this.add
-      .text(24, height - 24, `Pokédex: ${this.playerState.pokedex.length}`, {
-        fontSize: '14px',
-        color: '#94a3b8',
-      })
+      .text(
+        24,
+        height - 24,
+        `Pokédex: ${this.playerState.pokedex.length}`,
+        {
+          fontSize: '14px',
+          color: '#94a3b8',
+        }
+      )
       .setScrollFactor(0);
   }
 
@@ -137,17 +156,25 @@ export class WorldScene extends Phaser.Scene {
       this.interactKey &&
       Phaser.Input.Keyboard.JustDown(this.interactKey)
     ) {
+      updatePlayerPosition(this.player.x, this.player.y);
+      persistPlayerState();
       this.statusText?.setText('Battle starting...');
       this.scene.start('BattleScene', {
         player: {
-          name: this.playerState.name,
-          party: this.playerState.party,
+          name: this.playerState?.name ?? 'You',
+          party: this.playerState?.party ?? [],
         },
         opponent: {
           name: this.nearbyTrainer.definition.name,
           party: this.nearbyTrainer.definition.party,
         },
       });
+    }
+
+    if (time - this.lastSaveTime > 1500) {
+      updatePlayerPosition(this.player.x, this.player.y);
+      persistPlayerState();
+      this.lastSaveTime = time;
     }
   }
 }
