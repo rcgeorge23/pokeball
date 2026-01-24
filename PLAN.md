@@ -79,150 +79,152 @@ This document is a practical, incremental plan for building a **browser-only**, 
 
 ## Step-by-step Plan
 
+Tasks should be checked off once they are fully complete.
+
 ### Step 0 — Project Setup (Foundation)
 **Deliverable:** A running blank game with hot reload.
 
-- [ ] Create project:
-  - [ ] `npm create vite@latest pokemon-battler -- --template vanilla-ts`
-- [ ] Install Phaser:
-  - [ ] `npm i phaser`
+- [x] Create project:
+  - [x] `npm create vite@latest pokemon-battler -- --template vanilla-ts`
+- [x] Install Phaser:
+  - [x] `npm i phaser`
 - [ ] Add basic linting/formatting (optional but helpful):
   - [ ] ESLint + Prettier
-- [ ] Create initial entrypoint (`src/main.ts`) that boots a Phaser game.
-- [ ] Configure responsive sizing for mobile:
-  - [ ] Use `Phaser.Scale.FIT` + `autoCenter` to adapt to touch devices
-  - [ ] Set `input.activePointers` for multi-touch
-  - [ ] Disable browser touch scrolling on the game canvas
+- [x] Create initial entrypoint (`src/main.ts`) that boots a Phaser game.
+- [x] Configure responsive sizing for mobile:
+  - [x] Use `Phaser.Scale.FIT` + `autoCenter` to adapt to touch devices
+  - [x] Set `input.activePointers` for multi-touch
+  - [x] Disable browser touch scrolling on the game canvas
 
 **Acceptance criteria**
-- [ ] `npm run dev` opens a canvas and shows a solid background scene that fits a phone viewport.
+- [x] `npm run dev` opens a canvas and shows a solid background scene that fits a phone viewport.
 
 ---
 
 ### Step 1 — Core Game Loop & Scene Skeleton
 **Deliverable:** Basic scene flow: Boot → Preload → World.
 
-- [ ] Add three scenes:
-  - [ ] `BootScene`: sets scale, background color, config
-  - [ ] `PreloadScene`: loads placeholder assets
-  - [ ] `WorldScene`: renders a simple world
-- [ ] Add a `SceneManager` or simple scene registration in `main.ts`.
+- [x] Add three scenes:
+  - [x] `BootScene`: sets scale, background color, config
+  - [x] `PreloadScene`: loads placeholder assets
+  - [x] `WorldScene`: renders a simple world
+- [x] Add a `SceneManager` or simple scene registration in `main.ts`.
 - [ ] Add a simple touch input adapter in `engine/input.ts`:
   - [ ] Normalize touch input to movement vectors
   - [ ] Support on-screen controls (virtual joystick or D-pad)
 
 **Acceptance criteria**
-- [ ] App loads assets and transitions into WorldScene automatically, with touch input initialized.
+- [x] App loads assets and transitions into WorldScene automatically, with touch input initialized.
 
 ---
 
 ### Step 2 — Player Movement in a Top-down World
 **Deliverable:** Player sprite moves with collisions in a simple map.
 
-- [ ] Add a placeholder player sprite (square, simple sprite sheet, or a static image).
-- [ ] Implement touch-first movement:
-  - [ ] On-screen joystick/D-pad for movement
-  - [ ] Optional keyboard support for desktop testing
-- [ ] Add a basic tilemap (even 1 screen) or a simple world with collision rectangles.
-- [ ] Add camera follow.
+- [x] Add a placeholder player sprite (square, simple sprite sheet, or a static image).
+- [x] Implement touch-first movement:
+  - [x] On-screen joystick/D-pad for movement
+  - [x] Optional keyboard support for desktop testing
+- [x] Add a basic tilemap (even 1 screen) or a simple world with collision rectangles.
+- [x] Add camera follow.
 
 **Acceptance criteria**
-- [ ] Player moves smoothly via touch controls and cannot walk through collision areas.
+- [x] Player moves smoothly via touch controls and cannot walk through collision areas.
 
 ---
 
 ### Step 3 — NPC Trainers in the World
 **Deliverable:** Visible trainers with basic behavior + interaction trigger.
 
-- [ ] Create NPC trainer sprite + trainer data model:
-  - [ ] id, name, party (list of Pokémon ids), behavior type (stationary / wander)
-- [ ] Implement NPC spawn via `trainers.json`.
-- [ ] Implement:
-  - [ ] “wander” movement (random step every few seconds)
-  - [ ] interaction detection:
-    - [ ] tap trainer or tap action button, OR collision-based trigger
-- [ ] Add minimal UI hint: “Tap to battle”.
+- [x] Create NPC trainer sprite + trainer data model:
+  - [x] id, name, party (list of Pokémon ids), behavior type (stationary / wander)
+- [x] Implement NPC spawn via `trainers.json`.
+- [x] Implement:
+  - [x] “wander” movement (random step every few seconds)
+  - [x] interaction detection:
+    - [x] tap trainer or tap action button, OR collision-based trigger
+- [x] Add minimal UI hint: “Tap to battle”.
 
 **Acceptance criteria**
-- [ ] Multiple trainers appear; player can trigger battle with one via touch.
+- [x] Multiple trainers appear; player can trigger battle with one via touch.
 
 ---
 
 ### Step 4 — Battle Scene: Minimal Turn-based System (Vertical Slice)
 **Deliverable:** Battle scene runs a simple turn loop and returns a win/lose result.
 
-- [ ] Create `BattleScene` that receives:
-  - [ ] player trainer state
-  - [ ] opponent trainer state
-- [ ] Define minimum battle model:
-  - [ ] Pokémon: `name`, `hp`, `attack`, `defense`, `speed`, `moves[]`
-  - [ ] Move: `name`, `power` (flat or scaled), optional accuracy (later)
-- [ ] Implement **battle flow**:
-  - [ ] show both Pokémon
-  - [ ] player chooses move (simple menu)
-  - [ ] opponent chooses move (random or simple AI)
-  - [ ] apply damage
-  - [ ] check faint
-  - [ ] switch next Pokémon if any (for now: 1 Pokémon each is fine)
-- [ ] Render basic UI:
-  - [ ] HP bars
-  - [ ] move buttons
-  - [ ] text log (“X used Tackle!”)
-- [ ] Ensure buttons are large enough for touch targets (min ~44px)
+- [x] Create `BattleScene` that receives:
+  - [x] player trainer state
+  - [x] opponent trainer state
+- [x] Define minimum battle model:
+  - [x] Pokémon: `name`, `hp`, `attack`, `defense`, `speed`, `moves[]`
+  - [x] Move: `name`, `power` (flat or scaled), optional accuracy (later)
+- [x] Implement **battle flow**:
+  - [x] show both Pokémon
+  - [x] player chooses move (simple menu)
+  - [x] opponent chooses move (random or simple AI)
+  - [x] apply damage
+  - [x] check faint
+  - [x] switch next Pokémon if any (for now: 1 Pokémon each is fine)
+- [x] Render basic UI:
+  - [x] HP bars
+  - [x] move buttons
+  - [x] text log (“X used Tackle!”)
+- [x] Ensure buttons are large enough for touch targets (min ~44px)
 
 **Acceptance criteria**
-- [ ] Player can win/lose a battle using touch UI; battle ends and returns to WorldScene.
+- [x] Player can win/lose a battle using touch UI; battle ends and returns to WorldScene.
 
 ---
 
 ### Step 5 — Rewards Rule: Win Opponent’s First Pokémon
 **Deliverable:** When player wins, they gain the first opponent Pokémon used.
 
-- [ ] Define reward logic in `battle/rewards.ts`:
-  - [ ] Determine opponent’s first Pokémon in battle (the lead).
-  - [ ] On victory: add to player Pokédex.
-- [ ] Implement a simple Pokédex model:
-  - [ ] list of owned Pokémon instances (or IDs)
+- [x] Define reward logic in `battle/rewards.ts`:
+  - [x] Determine opponent’s first Pokémon in battle (the lead).
+  - [x] On victory: add to player Pokédex.
+- [x] Implement a simple Pokédex model:
+  - [x] list of owned Pokémon instances (or IDs)
   - [ ] optionally store “seen” vs “owned”
-- [ ] Add battle-end summary screen:
-  - [ ] “You won!”
-  - [ ] “You received: [PokémonName]”
-  - [ ] “Continue”
+- [x] Add battle-end summary screen:
+  - [x] “You won!”
+  - [x] “You received: [PokémonName]”
+  - [x] “Continue”
 
 **Acceptance criteria**
-- [ ] Winning a battle adds the opponent’s lead Pokémon to Pokédex.
+- [x] Winning a battle adds the opponent’s lead Pokémon to Pokédex.
 
 ---
 
 ### Step 6 — Persistence (Local Save)
 **Deliverable:** Refreshing the page keeps progress.
 
-- [ ] Implement `player/persistence.ts`:
-  - [ ] serialize player state: position, owned Pokémon, defeated trainers, settings
-  - [ ] save to `localStorage` (key: `pokemon-battler-save`)
-- [ ] Load on boot:
-  - [ ] if save exists, restore state
-  - [ ] else create new game state
+- [x] Implement `player/persistence.ts`:
+  - [x] serialize player state: position, owned Pokémon, defeated trainers, settings
+  - [x] save to `localStorage` (key: `pokemon-battler-save`)
+- [x] Load on boot:
+  - [x] if save exists, restore state
+  - [x] else create new game state
 
 **Acceptance criteria**
-- [ ] Progress and Pokédex persist after reload.
+- [x] Progress and Pokédex persist after reload.
 
 ---
 
 ### Step 7 — World Progression: Defeated Trainers + Rematches (Optional)
 **Deliverable:** Trainers can be marked defeated; optionally allow rematches.
 
-- [ ] Track `defeatedTrainerIds` in player state.
-- [ ] On battle win:
-  - [ ] mark opponent trainer as defeated
-- [ ] In world:
-  - [ ] defeated trainers change sprite tint or show “Defeated”
-- [ ] Decide rule:
-  - [ ] either no rematches
-  - [ ] or rematches allowed but no reward (or reward allowed—your call)
+- [x] Track `defeatedTrainerIds` in player state.
+- [x] On battle win:
+  - [x] mark opponent trainer as defeated
+- [x] In world:
+  - [x] defeated trainers change sprite tint or show “Defeated”
+- [x] Decide rule:
+  - [x] either no rematches
+  - [x] or rematches allowed but no reward (or reward allowed—your call)
 
 **Acceptance criteria**
-- [ ] Player can see who is defeated; defeated status persists.
+- [x] Player can see who is defeated; defeated status persists.
 
 ---
 
