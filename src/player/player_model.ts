@@ -1,16 +1,46 @@
+import { loadPlayerState, savePlayerState } from './persistence';
+
 export interface PlayerState {
   name: string;
   party: string[];
   pokedex: string[];
+  position: {
+    x: number;
+    y: number;
+  };
+  defeatedTrainerIds: string[];
 }
 
 const initialState: PlayerState = {
   name: 'You',
   party: ['emberfox'],
   pokedex: ['emberfox'],
+  position: {
+    x: 400,
+    y: 300,
+  },
+  defeatedTrainerIds: [],
 };
 
 let currentState: PlayerState = { ...initialState };
+
+export function initializePlayerState(): void {
+  const saved = loadPlayerState();
+  if (saved) {
+    currentState = {
+      ...initialState,
+      ...saved,
+      position: {
+        ...initialState.position,
+        ...(saved.position ?? {}),
+      },
+      party: saved.party ?? initialState.party,
+      pokedex: saved.pokedex ?? initialState.pokedex,
+      defeatedTrainerIds:
+        saved.defeatedTrainerIds ?? initialState.defeatedTrainerIds,
+    };
+  }
+}
 
 export function getPlayerState(): PlayerState {
   return currentState;
@@ -22,5 +52,20 @@ export function addPokemonToPokedex(pokemonId: string): void {
       ...currentState,
       pokedex: [...currentState.pokedex, pokemonId],
     };
+    savePlayerState(currentState);
   }
+}
+
+export function updatePlayerPosition(x: number, y: number): void {
+  currentState = {
+    ...currentState,
+    position: {
+      x,
+      y,
+    },
+  };
+}
+
+export function persistPlayerState(): void {
+  savePlayerState(currentState);
 }
