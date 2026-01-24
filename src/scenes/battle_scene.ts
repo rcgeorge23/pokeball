@@ -35,7 +35,6 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpText?: Phaser.GameObjects.Text;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
-  private rewardText?: Phaser.GameObjects.Text;
 
   constructor() {
     super('BattleScene');
@@ -249,7 +248,7 @@ export class BattleScene extends Phaser.Scene {
         : `${this.opponentTrainer?.name} defeated you.`;
     this.logText?.setText(message);
     if (rewardMessage) {
-      this.rewardText = this.add
+      this.add
         .text(24, this.scale.height - 128, rewardMessage, {
           fontSize: '16px',
           color: '#fde68a',
