@@ -17,6 +17,9 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
+  input: {
+    activePointers: 3,
+  },
   scene: [BootScene, PreloadScene, WorldScene, BattleScene],
   backgroundColor: '#0f172a',
 };
