@@ -14,6 +14,7 @@ export interface TrainerDefinition {
 export interface TrainerInstance {
   definition: TrainerDefinition;
   sprite: Phaser.Physics.Arcade.Image;
+  statusLabel: Phaser.GameObjects.Text;
 }
 
 const WANDER_SPEED = 50;
@@ -23,16 +24,36 @@ const WANDER_DELAY_MAX = 2000;
 class TrainerActor {
   private nextMoveTime = 0;
   private currentVelocity = new Phaser.Math.Vector2(0, 0);
+  private defeated = false;
 
   constructor(public readonly instance: TrainerInstance) {}
 
+  setDefeated(defeated: boolean): void {
+    this.defeated = defeated;
+    if (defeated) {
+      this.instance.sprite.setTint(0x94a3b8);
+      this.instance.statusLabel.setText('Defeated').setVisible(true);
+    } else {
+      this.instance.sprite.setTint(0xf97316);
+      this.instance.statusLabel.setVisible(false);
+    }
+  }
+
   update(time: number): void {
+    if (this.defeated) {
+      this.instance.sprite.setVelocity(0, 0);
+      this.updateLabelPosition();
+      return;
+    }
+
     if (this.instance.definition.behavior !== 'wander') {
       this.instance.sprite.setVelocity(0, 0);
+      this.updateLabelPosition();
       return;
     }
 
     if (time < this.nextMoveTime) {
+      this.updateLabelPosition();
       return;
     }
 
@@ -51,6 +72,14 @@ class TrainerActor {
     );
     this.nextMoveTime =
       time + Phaser.Math.Between(WANDER_DELAY_MIN, WANDER_DELAY_MAX);
+    this.updateLabelPosition();
+  }
+
+  private updateLabelPosition(): void {
+    this.instance.statusLabel.setPosition(
+      this.instance.sprite.x,
+      this.instance.sprite.y + 32
+    );
   }
 }
 
@@ -71,10 +100,21 @@ export class NpcController {
       sprite.setTint(0xf97316);
       sprite.setCollideWorldBounds(true);
 
+      const statusLabel = this.scene.add
+        .text(definition.x, definition.y + 32, '', {
+          fontSize: '12px',
+          color: '#e2e8f0',
+          backgroundColor: '#1f2937',
+          padding: { x: 6, y: 2 },
+        })
+        .setOrigin(0.5, 0)
+        .setVisible(false);
+
       this.trainers.push(
         new TrainerActor({
           definition,
           sprite,
+          statusLabel,
         })
       );
     });
@@ -86,6 +126,13 @@ export class NpcController {
 
   getInstances(): TrainerInstance[] {
     return this.trainers.map((trainer) => trainer.instance);
+  }
+
+  setDefeatedTrainerIds(defeatedIds: string[]): void {
+    const defeatedSet = new Set(defeatedIds);
+    this.trainers.forEach((trainer) => {
+      trainer.setDefeated(defeatedSet.has(trainer.instance.definition.id));
+    });
   }
 
   findNearbyTrainer(

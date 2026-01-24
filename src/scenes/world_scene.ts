@@ -22,6 +22,7 @@ export class WorldScene extends Phaser.Scene {
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
   private playerState!: PlayerState;
+  private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
   private touchDirections = new Map<number, Phaser.Math.Vector2>();
 
@@ -34,6 +35,7 @@ export class WorldScene extends Phaser.Scene {
     const worldWidth = width * 2;
     const worldHeight = height * 2;
     this.playerState = getPlayerState();
+    this.defeatedTrainerIds = new Set(this.playerState.defeatedTrainerIds);
 
     this.add.rectangle(0, 0, worldWidth, worldHeight, 0x1e293b).setOrigin(0);
 
@@ -83,6 +85,7 @@ export class WorldScene extends Phaser.Scene {
       this,
       trainerData as TrainerDefinition[]
     );
+    this.npcController.setDefeatedTrainerIds(this.playerState.defeatedTrainerIds);
 
     this.npcController.getInstances().forEach((trainer) => {
       this.physics.add.collider(trainer.sprite, walls);
@@ -152,8 +155,13 @@ export class WorldScene extends Phaser.Scene {
 
     if (this.hintText) {
       if (this.nearbyTrainer) {
+        const isDefeated = this.defeatedTrainerIds.has(
+          this.nearbyTrainer.definition.id
+        );
         this.hintText.setText(
-          `Press E to battle ${this.nearbyTrainer.definition.name}`
+          isDefeated
+            ? `${this.nearbyTrainer.definition.name} is defeated. Press E to rematch.`
+            : `Press E to battle ${this.nearbyTrainer.definition.name}`
         );
       } else {
         this.hintText.setText('');
@@ -174,8 +182,12 @@ export class WorldScene extends Phaser.Scene {
           party: this.playerState?.party ?? [],
         },
         opponent: {
+          id: this.nearbyTrainer.definition.id,
           name: this.nearbyTrainer.definition.name,
           party: this.nearbyTrainer.definition.party,
+          defeated: this.defeatedTrainerIds.has(
+            this.nearbyTrainer.definition.id
+          ),
         },
       });
     }
