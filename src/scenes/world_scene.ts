@@ -119,10 +119,8 @@ export class WorldScene extends Phaser.Scene {
     this.player.setVelocity(velocity.x, velocity.y);
 
     this.npcController?.update(time);
-    this.nearbyTrainer = this.npcController?.findNearbyTrainer(
-      this.player,
-      80
-    );
+    this.nearbyTrainer =
+      this.npcController?.findNearbyTrainer(this.player, 80) ?? null;
 
     if (this.hintText) {
       if (this.nearbyTrainer) {
