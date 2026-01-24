@@ -23,13 +23,14 @@ export class WorldScene extends Phaser.Scene {
   private nearbyTrainer: TrainerInstance | null = null;
   private playerState!: PlayerState;
   private lastSaveTime = 0;
+  private touchDirections = new Map<number, Phaser.Math.Vector2>();
 
   constructor() {
     super('WorldScene');
   }
 
   create(): void {
-    const { width, height } = this.scale;
+    const { height } = this.scale;
     const worldWidth = width * 2;
     const worldHeight = height * 2;
     this.playerState = getPlayerState();
@@ -66,6 +67,7 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
     this.cameras.main.startFollow(this.player);
 
+    this.input.addPointer(2);
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.moveKeys = this.input.keyboard?.addKeys('W,A,S,D') as Record<
       string,
@@ -92,6 +94,8 @@ export class WorldScene extends Phaser.Scene {
         color: '#e2e8f0',
       })
       .setScrollFactor(0);
+
+    this.createTouchControls();
 
     this.hintText = this.add
       .text(24, height - 48, '', {
@@ -132,6 +136,11 @@ export class WorldScene extends Phaser.Scene {
     }
     if (this.cursors.down?.isDown || this.moveKeys.S.isDown) {
       velocity.y += 1;
+    }
+
+    for (const direction of this.touchDirections.values()) {
+      velocity.x += direction.x;
+      velocity.y += direction.y;
     }
 
     velocity.normalize().scale(speed);
@@ -176,5 +185,85 @@ export class WorldScene extends Phaser.Scene {
       persistPlayerState();
       this.lastSaveTime = time;
     }
+  }
+
+  private createTouchControls(): void {
+    const { height } = this.scale;
+    const baseX = 90;
+    const baseY = height - 140;
+    const buttonSize = 54;
+    const gap = 10;
+
+    const labelStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontSize: '18px',
+      color: '#f8fafc',
+    };
+
+    const createButton = (
+      x: number,
+      y: number,
+      label: string,
+      direction: Phaser.Math.Vector2
+    ) => {
+      const rect = this.add
+        .rectangle(x, y, buttonSize, buttonSize, 0x1e293b, 0.8)
+        .setOrigin(0)
+        .setStrokeStyle(2, 0x475569);
+      const text = this.add
+        .text(x + buttonSize / 2, y + buttonSize / 2, label, labelStyle)
+        .setOrigin(0.5);
+      const container = this.add.container(0, 0, [rect, text]);
+      container.setScrollFactor(0);
+      container.setSize(buttonSize, buttonSize);
+      container.setInteractive(
+        new Phaser.Geom.Rectangle(x, y, buttonSize, buttonSize),
+        Phaser.Geom.Rectangle.Contains
+      );
+
+      const setDirection = (pointer: Phaser.Input.Pointer) => {
+        this.touchDirections.set(pointer.id, direction.clone());
+      };
+
+      const clearDirection = (pointer: Phaser.Input.Pointer) => {
+        this.touchDirections.delete(pointer.id);
+      };
+
+      container.on('pointerdown', setDirection);
+      container.on('pointerup', clearDirection);
+      container.on('pointerout', clearDirection);
+      return container;
+    };
+
+    createButton(
+      baseX,
+      baseY - buttonSize - gap,
+      '▲',
+      new Phaser.Math.Vector2(0, -1)
+    );
+    createButton(
+      baseX,
+      baseY + buttonSize + gap,
+      '▼',
+      new Phaser.Math.Vector2(0, 1)
+    );
+    createButton(
+      baseX - buttonSize - gap,
+      baseY,
+      '◀',
+      new Phaser.Math.Vector2(-1, 0)
+    );
+    createButton(
+      baseX + buttonSize + gap,
+      baseY,
+      '▶',
+      new Phaser.Math.Vector2(1, 0)
+    );
+
+    this.add
+      .text(baseX - buttonSize, baseY - buttonSize - 40, 'Touch controls', {
+        fontSize: '14px',
+        color: '#cbd5f5',
+      })
+      .setScrollFactor(0);
   }
 }
