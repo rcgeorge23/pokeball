@@ -25,6 +25,10 @@ export class WorldScene extends Phaser.Scene {
   private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
   private touchDirections = new Map<number, Phaser.Math.Vector2>();
+  private joystickPointerId: number | null = null;
+  private joystickAnchor = new Phaser.Math.Vector2();
+  private joystickMaxDistance = 0;
+  private joystickKnob?: Phaser.GameObjects.Arc;
 
   constructor() {
     super('WorldScene');
@@ -146,7 +150,11 @@ export class WorldScene extends Phaser.Scene {
       velocity.y += direction.y;
     }
 
-    velocity.normalize().scale(speed);
+    const magnitude = velocity.length();
+    if (magnitude > 1) {
+      velocity.normalize();
+    }
+    velocity.scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
 
     this.npcController?.update(time);
@@ -203,78 +211,81 @@ export class WorldScene extends Phaser.Scene {
     const { height } = this.scale;
     const baseX = 90;
     const baseY = height - 140;
-    const buttonSize = 54;
-    const gap = 10;
+    const baseRadius = 54;
+    const knobRadius = 26;
+    const maxDistance = 40;
 
-    const labelStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-      fontSize: '18px',
-      color: '#f8fafc',
-    };
+    this.joystickAnchor.set(baseX, baseY);
+    this.joystickMaxDistance = maxDistance;
 
-    const createButton = (
-      x: number,
-      y: number,
-      label: string,
-      direction: Phaser.Math.Vector2
-    ) => {
-      const rect = this.add
-        .rectangle(x, y, buttonSize, buttonSize, 0x1e293b, 0.8)
-        .setOrigin(0)
-        .setStrokeStyle(2, 0x475569);
-      const text = this.add
-        .text(x + buttonSize / 2, y + buttonSize / 2, label, labelStyle)
-        .setOrigin(0.5);
-      const container = this.add.container(0, 0, [rect, text]);
-      container.setScrollFactor(0);
-      container.setDepth(20);
-      container.setSize(buttonSize, buttonSize);
-      container.setInteractive(
-        new Phaser.Geom.Rectangle(x, y, buttonSize, buttonSize),
-        Phaser.Geom.Rectangle.Contains
+    const base = this.add
+      .circle(baseX, baseY, baseRadius, 0x0f172a, 0.6)
+      .setStrokeStyle(2, 0x475569);
+    base.setScrollFactor(0);
+    base.setDepth(20);
+
+    this.joystickKnob = this.add
+      .circle(baseX, baseY, knobRadius, 0x94a3b8, 0.9)
+      .setStrokeStyle(2, 0x0f172a);
+    this.joystickKnob.setScrollFactor(0);
+    this.joystickKnob.setDepth(21);
+
+    const updateJoystick = (pointer: Phaser.Input.Pointer) => {
+      const delta = new Phaser.Math.Vector2(
+        pointer.x - this.joystickAnchor.x,
+        pointer.y - this.joystickAnchor.y
       );
-
-      const setDirection = (pointer: Phaser.Input.Pointer) => {
-        this.touchDirections.set(pointer.id, direction.clone());
-      };
-
-      const clearDirection = (pointer: Phaser.Input.Pointer) => {
-        this.touchDirections.delete(pointer.id);
-      };
-
-      container.on('pointerdown', setDirection);
-      container.on('pointerup', clearDirection);
-      container.on('pointerupoutside', clearDirection);
-      container.on('pointerout', clearDirection);
-      return container;
+      if (delta.length() > this.joystickMaxDistance) {
+        delta.setLength(this.joystickMaxDistance);
+      }
+      this.joystickKnob?.setPosition(
+        this.joystickAnchor.x + delta.x,
+        this.joystickAnchor.y + delta.y
+      );
+      const normalized = delta
+        .clone()
+        .scale(1 / Math.max(this.joystickMaxDistance, 1));
+      this.touchDirections.set(pointer.id, normalized);
     };
 
-    createButton(
-      baseX,
-      baseY - buttonSize - gap,
-      '▲',
-      new Phaser.Math.Vector2(0, -1)
+    const startJoystick = (pointer: Phaser.Input.Pointer) => {
+      this.joystickPointerId = pointer.id;
+      updateJoystick(pointer);
+    };
+
+    const stopJoystick = (pointer: Phaser.Input.Pointer) => {
+      if (this.joystickPointerId !== pointer.id) {
+        return;
+      }
+      this.touchDirections.delete(pointer.id);
+      this.joystickPointerId = null;
+      this.joystickKnob?.setPosition(
+        this.joystickAnchor.x,
+        this.joystickAnchor.y
+      );
+    };
+
+    const hitArea = new Phaser.Geom.Circle(baseX, baseY, baseRadius);
+    base.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
+    this.joystickKnob.setInteractive(
+      new Phaser.Geom.Circle(baseX, baseY, knobRadius),
+      Phaser.Geom.Circle.Contains
     );
-    createButton(
-      baseX,
-      baseY + buttonSize + gap,
-      '▼',
-      new Phaser.Math.Vector2(0, 1)
-    );
-    createButton(
-      baseX - buttonSize - gap,
-      baseY,
-      '◀',
-      new Phaser.Math.Vector2(-1, 0)
-    );
-    createButton(
-      baseX + buttonSize + gap,
-      baseY,
-      '▶',
-      new Phaser.Math.Vector2(1, 0)
-    );
+
+    base.on('pointerdown', startJoystick);
+    this.joystickKnob.on('pointerdown', startJoystick);
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.joystickPointerId === pointer.id) {
+        updateJoystick(pointer);
+      }
+    });
+
+    this.input.on('pointerup', stopJoystick);
+    this.input.on('pointerupoutside', stopJoystick);
 
     this.add
-      .text(baseX - buttonSize, baseY - buttonSize - 40, 'Touch controls', {
+      .text(baseX - baseRadius, baseY - baseRadius - 30, 'Joystick', {
         fontSize: '14px',
         color: '#cbd5f5',
       })
