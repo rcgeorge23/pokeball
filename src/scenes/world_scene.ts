@@ -24,11 +24,9 @@ export class WorldScene extends Phaser.Scene {
   private playerState!: PlayerState;
   private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
-  private touchDirections = new Map<number, Phaser.Math.Vector2>();
-  private joystickPointerId: number | null = null;
-  private joystickAnchor = new Phaser.Math.Vector2();
-  private joystickMaxDistance = 0;
-  private joystickKnob?: Phaser.GameObjects.Arc;
+  private touchDirections = new Map<string, Phaser.Math.Vector2>();
+  private joystick?: JoyStick;
+  private joystickElement?: HTMLElement;
 
   constructor() {
     super('WorldScene');
@@ -208,88 +206,84 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createTouchControls(): void {
-    const { height } = this.scale;
-    const baseX = 90;
-    const baseY = height - 140;
-    const baseRadius = 54;
-    const knobRadius = 26;
-    const maxDistance = 40;
+    const joystickElement = document.getElementById('joystick');
+    if (!joystickElement) {
+      return;
+    }
 
-    this.joystickAnchor.set(baseX, baseY);
-    this.joystickMaxDistance = maxDistance;
+    this.joystickElement = joystickElement;
+    this.joystickElement.style.display = 'block';
+    this.joystickElement.innerHTML = '';
 
-    const base = this.add
-      .circle(baseX, baseY, baseRadius, 0x0f172a, 0.6)
-      .setStrokeStyle(2, 0x475569);
-    base.setScrollFactor(0);
-    base.setDepth(20);
-
-    this.joystickKnob = this.add
-      .circle(baseX, baseY, knobRadius, 0x94a3b8, 0.9)
-      .setStrokeStyle(2, 0x0f172a);
-    this.joystickKnob.setScrollFactor(0);
-    this.joystickKnob.setDepth(21);
-
-    const updateJoystick = (pointer: Phaser.Input.Pointer) => {
-      const delta = new Phaser.Math.Vector2(
-        pointer.x - this.joystickAnchor.x,
-        pointer.y - this.joystickAnchor.y
-      );
-      if (delta.length() > this.joystickMaxDistance) {
-        delta.setLength(this.joystickMaxDistance);
+    const normalizeAxis = (value: number): number => {
+      if (!Number.isFinite(value)) {
+        return 0;
       }
-      this.joystickKnob?.setPosition(
-        this.joystickAnchor.x + delta.x,
-        this.joystickAnchor.y + delta.y
+      if (Math.abs(value) > 1) {
+        return Phaser.Math.Clamp(value / 100, -1, 1);
+      }
+      return Phaser.Math.Clamp(value, -1, 1);
+    };
+
+    const readAxis = (
+      data: Record<string, unknown>,
+      ...keys: string[]
+    ): number => {
+      for (const key of keys) {
+        const value = data[key];
+        if (typeof value === 'number') {
+          return value;
+        }
+      }
+      return 0;
+    };
+
+    const updateDirection = (x: number, y: number) => {
+      const direction = new Phaser.Math.Vector2(
+        normalizeAxis(x),
+        normalizeAxis(y)
       );
-      const normalized = delta
-        .clone()
-        .scale(1 / Math.max(this.joystickMaxDistance, 1));
-      this.touchDirections.set(pointer.id, normalized);
-    };
-
-    const startJoystick = (pointer: Phaser.Input.Pointer) => {
-      this.joystickPointerId = pointer.id;
-      updateJoystick(pointer);
-    };
-
-    const stopJoystick = (pointer: Phaser.Input.Pointer) => {
-      if (this.joystickPointerId !== pointer.id) {
+      if (direction.lengthSq() < 0.0001) {
+        this.touchDirections.delete('joystick');
         return;
       }
-      this.touchDirections.delete(pointer.id);
-      this.joystickPointerId = null;
-      this.joystickKnob?.setPosition(
-        this.joystickAnchor.x,
-        this.joystickAnchor.y
-      );
+      this.touchDirections.set('joystick', direction);
     };
 
-    const hitArea = new Phaser.Geom.Circle(0, 0, baseRadius);
-    base.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
-    this.joystickKnob.setInteractive(
-      new Phaser.Geom.Circle(0, 0, knobRadius),
-      Phaser.Geom.Circle.Contains
+    this.joystick = new JoyStick(
+      'joystick',
+      {
+        title: 'Joystick',
+        internalFillColor: '#94a3b8',
+        internalStrokeColor: '#0f172a',
+        externalStrokeColor: '#475569',
+      },
+      (stickData: JoyStickData) => {
+        const axisX = readAxis(
+          stickData,
+          'x',
+          'X',
+          'posX',
+          'positionX'
+        );
+        const axisY = readAxis(
+          stickData,
+          'y',
+          'Y',
+          'posY',
+          'positionY'
+        );
+        updateDirection(axisX, axisY);
+      }
     );
 
-    base.on('pointerdown', startJoystick);
-    this.joystickKnob.on('pointerdown', startJoystick);
-
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.joystickPointerId === pointer.id) {
-        updateJoystick(pointer);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.touchDirections.delete('joystick');
+      if (this.joystickElement) {
+        this.joystickElement.style.display = 'none';
+        this.joystickElement.innerHTML = '';
       }
+      this.joystick = undefined;
     });
-
-    this.input.on('pointerup', stopJoystick);
-    this.input.on('pointerupoutside', stopJoystick);
-
-    this.add
-      .text(baseX - baseRadius, baseY - baseRadius - 30, 'Joystick', {
-        fontSize: '14px',
-        color: '#cbd5f5',
-      })
-      .setScrollFactor(0)
-      .setDepth(20);
   }
 }
