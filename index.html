@@ -20,6 +20,17 @@
         height: 100%;
       }
 
+      #joystick {
+        position: fixed;
+        left: 24px;
+        bottom: 24px;
+        width: 160px;
+        height: 160px;
+        z-index: 10;
+        display: none;
+        touch-action: none;
+      }
+
       canvas {
         touch-action: none;
       }
@@ -27,6 +38,8 @@
   </head>
   <body>
     <div id="app"></div>
+    <div id="joystick"></div>
+    <script src="https://cdn.jsdelivr.net/gh/bobboteck/JoyStick/joy.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
