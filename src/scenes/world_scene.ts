@@ -31,7 +31,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
-    const { height } = this.scale;
+    const { width, height } = this.scale;
     const worldWidth = width * 2;
     const worldHeight = height * 2;
     this.playerState = getPlayerState();
