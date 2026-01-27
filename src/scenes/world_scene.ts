@@ -92,7 +92,7 @@ export class WorldScene extends Phaser.Scene {
     });
 
     this.add
-      .text(24, 24, 'Move with WASD or arrow keys', {
+      .text(24, 24, 'Move with WASD, arrow keys, or touch controls', {
         fontSize: '16px',
         color: '#e2e8f0',
       })
@@ -226,6 +226,7 @@ export class WorldScene extends Phaser.Scene {
         .setOrigin(0.5);
       const container = this.add.container(0, 0, [rect, text]);
       container.setScrollFactor(0);
+      container.setDepth(20);
       container.setSize(buttonSize, buttonSize);
       container.setInteractive(
         new Phaser.Geom.Rectangle(x, y, buttonSize, buttonSize),
@@ -242,6 +243,7 @@ export class WorldScene extends Phaser.Scene {
 
       container.on('pointerdown', setDirection);
       container.on('pointerup', clearDirection);
+      container.on('pointerupoutside', clearDirection);
       container.on('pointerout', clearDirection);
       return container;
     };
@@ -276,6 +278,7 @@ export class WorldScene extends Phaser.Scene {
         fontSize: '14px',
         color: '#cbd5f5',
       })
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setDepth(20);
   }
 }
