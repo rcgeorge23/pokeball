@@ -265,10 +265,10 @@ export class WorldScene extends Phaser.Scene {
       );
     };
 
-    const hitArea = new Phaser.Geom.Circle(baseX, baseY, baseRadius);
+    const hitArea = new Phaser.Geom.Circle(0, 0, baseRadius);
     base.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
     this.joystickKnob.setInteractive(
-      new Phaser.Geom.Circle(baseX, baseY, knobRadius),
+      new Phaser.Geom.Circle(0, 0, knobRadius),
       Phaser.Geom.Circle.Contains
     );
 
