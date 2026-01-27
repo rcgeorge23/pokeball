@@ -122,23 +122,23 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(time: number): void {
-    if (!this.player || !this.cursors || !this.moveKeys) {
+    if (!this.player) {
       return;
     }
 
     const speed = 180;
     const velocity = new Phaser.Math.Vector2(0, 0);
 
-    if (this.cursors.left?.isDown || this.moveKeys.A.isDown) {
+    if (this.cursors?.left?.isDown || this.moveKeys?.A?.isDown) {
       velocity.x -= 1;
     }
-    if (this.cursors.right?.isDown || this.moveKeys.D.isDown) {
+    if (this.cursors?.right?.isDown || this.moveKeys?.D?.isDown) {
       velocity.x += 1;
     }
-    if (this.cursors.up?.isDown || this.moveKeys.W.isDown) {
+    if (this.cursors?.up?.isDown || this.moveKeys?.W?.isDown) {
       velocity.y -= 1;
     }
-    if (this.cursors.down?.isDown || this.moveKeys.S.isDown) {
+    if (this.cursors?.down?.isDown || this.moveKeys?.S?.isDown) {
       velocity.y += 1;
     }
 
@@ -237,6 +237,37 @@ export class WorldScene extends Phaser.Scene {
       return 0;
     };
 
+    const directionFromLabel = (label?: string): Phaser.Math.Vector2 | null => {
+      if (!label) {
+        return null;
+      }
+      const normalized = label.trim().toLowerCase();
+      const lookup: Record<string, Phaser.Math.Vector2> = {
+        n: new Phaser.Math.Vector2(0, -1),
+        north: new Phaser.Math.Vector2(0, -1),
+        up: new Phaser.Math.Vector2(0, -1),
+        ne: new Phaser.Math.Vector2(1, -1),
+        northeast: new Phaser.Math.Vector2(1, -1),
+        e: new Phaser.Math.Vector2(1, 0),
+        east: new Phaser.Math.Vector2(1, 0),
+        right: new Phaser.Math.Vector2(1, 0),
+        se: new Phaser.Math.Vector2(1, 1),
+        southeast: new Phaser.Math.Vector2(1, 1),
+        s: new Phaser.Math.Vector2(0, 1),
+        south: new Phaser.Math.Vector2(0, 1),
+        down: new Phaser.Math.Vector2(0, 1),
+        sw: new Phaser.Math.Vector2(-1, 1),
+        southwest: new Phaser.Math.Vector2(-1, 1),
+        w: new Phaser.Math.Vector2(-1, 0),
+        west: new Phaser.Math.Vector2(-1, 0),
+        left: new Phaser.Math.Vector2(-1, 0),
+        nw: new Phaser.Math.Vector2(-1, -1),
+        northwest: new Phaser.Math.Vector2(-1, -1),
+      };
+
+      return lookup[normalized] ?? null;
+    };
+
     const updateDirection = (x: number, y: number) => {
       const direction = new Phaser.Math.Vector2(
         normalizeAxis(x),
@@ -272,7 +303,25 @@ export class WorldScene extends Phaser.Scene {
           'posY',
           'positionY'
         );
-        updateDirection(axisX, axisY);
+        if (axisX !== 0 || axisY !== 0) {
+          updateDirection(axisX, axisY);
+          return;
+        }
+
+        const fallbackDirection = directionFromLabel(stickData.direction);
+        if (fallbackDirection) {
+          const distance = stickData.distance ?? 100;
+          const scaledDistance = Phaser.Math.Clamp(distance / 100, 0, 1);
+          fallbackDirection.normalize().scale(scaledDistance);
+          if (fallbackDirection.lengthSq() < 0.0001) {
+            this.touchDirections.delete('joystick');
+          } else {
+            this.touchDirections.set('joystick', fallbackDirection);
+          }
+          return;
+        }
+
+        this.touchDirections.delete('joystick');
       }
     );
 
