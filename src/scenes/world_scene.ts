@@ -25,7 +25,6 @@ export class WorldScene extends Phaser.Scene {
   private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
   private touchDirections = new Map<string, Phaser.Math.Vector2>();
-  private joystick?: JoyStick;
   private joystickElement?: HTMLElement;
 
   constructor() {
@@ -226,8 +225,8 @@ export class WorldScene extends Phaser.Scene {
     };
 
     const readAxis = (
-      data: Record<string, unknown>,
-      ...keys: string[]
+      data: JoyStickData,
+      ...keys: (keyof JoyStickData)[]
     ): number => {
       for (const key of keys) {
         const value = data[key];
@@ -250,7 +249,7 @@ export class WorldScene extends Phaser.Scene {
       this.touchDirections.set('joystick', direction);
     };
 
-    this.joystick = new JoyStick(
+    new JoyStick(
       'joystick',
       {
         title: 'Joystick',
@@ -283,7 +282,6 @@ export class WorldScene extends Phaser.Scene {
         this.joystickElement.style.display = 'none';
         this.joystickElement.innerHTML = '';
       }
-      this.joystick = undefined;
     });
   }
 }
