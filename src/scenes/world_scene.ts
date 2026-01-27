@@ -122,23 +122,23 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(time: number): void {
-    if (!this.player || !this.cursors || !this.moveKeys) {
+    if (!this.player) {
       return;
     }
 
     const speed = 180;
     const velocity = new Phaser.Math.Vector2(0, 0);
 
-    if (this.cursors.left?.isDown || this.moveKeys.A.isDown) {
+    if (this.cursors?.left?.isDown || this.moveKeys?.A?.isDown) {
       velocity.x -= 1;
     }
-    if (this.cursors.right?.isDown || this.moveKeys.D.isDown) {
+    if (this.cursors?.right?.isDown || this.moveKeys?.D?.isDown) {
       velocity.x += 1;
     }
-    if (this.cursors.up?.isDown || this.moveKeys.W.isDown) {
+    if (this.cursors?.up?.isDown || this.moveKeys?.W?.isDown) {
       velocity.y -= 1;
     }
-    if (this.cursors.down?.isDown || this.moveKeys.S.isDown) {
+    if (this.cursors?.down?.isDown || this.moveKeys?.S?.isDown) {
       velocity.y += 1;
     }
 
