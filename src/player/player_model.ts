@@ -13,8 +13,8 @@ export interface PlayerState {
 
 const initialState: PlayerState = {
   name: 'You',
-  party: ['emberfox'],
-  pokedex: ['emberfox'],
+  party: ['emberfox', 'leafling'],
+  pokedex: ['emberfox', 'leafling'],
   position: {
     x: 400,
     y: 300,

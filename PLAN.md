@@ -232,7 +232,7 @@ Tasks should be checked off once they are fully complete.
 **Deliverable:** Battles feel like a game rather than a demo.
 
 Pick enhancements one at a time:
-- [ ] Multiple Pokémon per trainer party (simple switching on faint)
+- [x] Multiple Pokémon per trainer party (simple switching on faint)
 - [ ] Turn order based on speed
 - [ ] Accuracy / miss chance
 - [ ] Critical hits

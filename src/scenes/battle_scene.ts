@@ -39,10 +39,14 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpBar?: Phaser.GameObjects.Rectangle;
   private playerHpText?: Phaser.GameObjects.Text;
   private opponentHpText?: Phaser.GameObjects.Text;
+  private playerNameText?: Phaser.GameObjects.Text;
+  private opponentNameText?: Phaser.GameObjects.Text;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
   private opponentTrainerId?: string;
   private opponentAlreadyDefeated = false;
+  private playerPokemonIndex = 0;
+  private opponentPokemonIndex = 0;
 
   constructor() {
     super('BattleScene');
@@ -75,8 +79,10 @@ export class BattleScene extends Phaser.Scene {
       moveIndex
     );
 
-    this.playerPokemon = this.playerTrainer.party[0];
-    this.opponentPokemon = this.opponentTrainer.party[0];
+    this.playerPokemonIndex = 0;
+    this.opponentPokemonIndex = 0;
+    this.playerPokemon = this.playerTrainer.party[this.playerPokemonIndex];
+    this.opponentPokemon = this.opponentTrainer.party[this.opponentPokemonIndex];
 
     this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0f172a)
       .setOrigin(0);
@@ -124,15 +130,25 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0)
       .setStrokeStyle(2, 0x334155);
 
-    this.add.text(32, this.scale.height - 252, this.playerPokemon.name, {
-      fontSize: '16px',
-      color: '#f8fafc',
-    });
+    this.playerNameText = this.add.text(
+      32,
+      this.scale.height - 252,
+      this.playerPokemon.name,
+      {
+        fontSize: '16px',
+        color: '#f8fafc',
+      }
+    );
 
-    this.add.text(this.scale.width - 268, 88, this.opponentPokemon.name, {
-      fontSize: '16px',
-      color: '#f8fafc',
-    });
+    this.opponentNameText = this.add.text(
+      this.scale.width - 268,
+      88,
+      this.opponentPokemon.name,
+      {
+        fontSize: '16px',
+        color: '#f8fafc',
+      }
+    );
 
     this.playerHpBar = this.add
       .rectangle(32, this.scale.height - 222, 200, 12, 0x22c55e)
@@ -150,6 +166,50 @@ export class BattleScene extends Phaser.Scene {
       fontSize: '14px',
       color: '#cbd5f5',
     });
+  }
+
+  private refreshStatusPanels(): void {
+    if (
+      !this.playerPokemon ||
+      !this.opponentPokemon ||
+      !this.playerNameText ||
+      !this.opponentNameText
+    ) {
+      return;
+    }
+
+    this.playerNameText.setText(this.playerPokemon.name);
+    this.opponentNameText.setText(this.opponentPokemon.name);
+    this.updateHpBars();
+  }
+
+  private clearMoveButtons(): void {
+    this.moveButtons.forEach((button) => button.destroy());
+    this.moveButtons = [];
+  }
+
+  private refreshMoveButtons(): void {
+    this.clearMoveButtons();
+    this.renderMoveButtons();
+  }
+
+  private setPlayerPokemon(index: number): void {
+    if (!this.playerTrainer) {
+      return;
+    }
+    this.playerPokemonIndex = index;
+    this.playerPokemon = this.playerTrainer.party[index];
+    this.refreshStatusPanels();
+    this.refreshMoveButtons();
+  }
+
+  private setOpponentPokemon(index: number): void {
+    if (!this.opponentTrainer) {
+      return;
+    }
+    this.opponentPokemonIndex = index;
+    this.opponentPokemon = this.opponentTrainer.party[index];
+    this.refreshStatusPanels();
   }
 
   private renderMoveButtons(): void {
@@ -198,6 +258,7 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
 
+    const opponentFaintedName = this.opponentPokemon.name;
     const damage = calculateDamage(
       this.playerPokemon,
       this.opponentPokemon,
@@ -208,6 +269,23 @@ export class BattleScene extends Phaser.Scene {
     this.logText?.setText(`${this.playerPokemon.name} used ${move.name}!`);
 
     if (this.opponentPokemon.hp <= 0) {
+      const nextOpponentIndex = this.opponentPokemonIndex + 1;
+      if (
+        this.opponentTrainer &&
+        nextOpponentIndex < this.opponentTrainer.party.length
+      ) {
+        this.logText?.setText(`${opponentFaintedName} fainted!`);
+        this.time.delayedCall(700, () => {
+          this.setOpponentPokemon(nextOpponentIndex);
+          this.logText?.setText(
+            `${this.opponentTrainer?.name} sent out ${this.opponentPokemon?.name}!`
+          );
+          this.isResolving = false;
+          this.setButtonsEnabled(true);
+        });
+        return;
+      }
+
       this.endBattle('win');
       return;
     }
@@ -236,6 +314,23 @@ export class BattleScene extends Phaser.Scene {
     );
 
     if (this.playerPokemon.hp <= 0) {
+      const nextPlayerIndex = this.playerPokemonIndex + 1;
+      if (
+        this.playerTrainer &&
+        nextPlayerIndex < this.playerTrainer.party.length
+      ) {
+        const faintedName = this.playerPokemon.name;
+        this.time.delayedCall(700, () => {
+          this.setPlayerPokemon(nextPlayerIndex);
+          this.logText?.setText(
+            `${faintedName} fainted! Go ${this.playerPokemon?.name}!`
+          );
+          this.isResolving = false;
+          this.setButtonsEnabled(true);
+        });
+        return;
+      }
+
       this.endBattle('lose');
       return;
     }
