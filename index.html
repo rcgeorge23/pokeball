@@ -31,6 +31,27 @@
         touch-action: none;
       }
 
+      #battle-button {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 10;
+        display: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 20px;
+        background: #dc2626;
+        color: #f8fafc;
+        font-size: 16px;
+        font-weight: 600;
+        touch-action: manipulation;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5);
+      }
+
+      #battle-button:active {
+        transform: translateY(1px);
+      }
+
       canvas {
         touch-action: none;
       }
@@ -39,6 +60,7 @@
   <body>
     <div id="app"></div>
     <div id="joystick"></div>
+    <button id="battle-button" type="button">Battle</button>
     <script src="https://cdn.jsdelivr.net/gh/bobboteck/JoyStick/joy.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
