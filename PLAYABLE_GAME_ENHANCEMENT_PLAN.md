@@ -20,10 +20,10 @@ This plan upgrades the current prototype into a more enjoyable, replayable, “g
 Done when: speed affects who goes first and it’s visible in logs.
 
 ### 1.2 Accuracy, crits, and “gamey” feedback
-- [ ] Extend move schema to include:
-  - [ ] accuracy (0–1, default 1)
-  - [ ] critChance (0–1, default e.g. 0.1)
-  - [ ] critMultiplier (default e.g. 1.5)
+- [x] Extend move schema to include: (PR: add move accuracy/crit schema defaults)
+  - [x] accuracy (0–1, default 1)
+  - [x] critChance (0–1, default e.g. 0.1)
+  - [x] critMultiplier (default e.g. 1.5)
 - [ ] Apply miss chance and log “It missed!”
 - [ ] Apply critical hits and log “Critical hit!”
 - [ ] Add small camera shake on crit (use Phaser Camera Shake)
