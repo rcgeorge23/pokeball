@@ -22,7 +22,7 @@ test('normalizeAxis supports both percentage-like and unit-like values', () => {
 test('deriveJoystickDirection converts axis values into movement vectors', () => {
   assert.deepEqual(deriveJoystickDirection({ x: '50', y: '-25' }), {
     x: 0.5,
-    y: -0.25,
+    y: 0.25,
   });
 });
 

@@ -69,7 +69,7 @@ export const deriveJoystickDirection = (
   const axisX = readAxis(stickData, 'x', 'X', 'posX', 'positionX');
   const axisY = readAxis(stickData, 'y', 'Y', 'posY', 'positionY');
   const normalizedX = normalizeAxis(axisX);
-  const normalizedY = normalizeAxis(axisY);
+  const normalizedY = -normalizeAxis(axisY);
 
   if (Math.abs(normalizedX) > 0 || Math.abs(normalizedY) > 0) {
     if (normalizedX * normalizedX + normalizedY * normalizedY < 0.0001) {
