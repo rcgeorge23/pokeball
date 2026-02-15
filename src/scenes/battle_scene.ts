@@ -220,8 +220,11 @@ export class BattleScene extends Phaser.Scene {
     const buttonWidth = 160;
     const buttonHeight = 48;
     const startX = 24;
-    const startY = this.scale.height - 96;
     const gap = 12;
+    const totalRows = Math.ceil(this.playerPokemon.moves.length / 2);
+    const layoutHeight =
+      totalRows * buttonHeight + Math.max(0, totalRows - 1) * gap;
+    const startY = this.scale.height - layoutHeight - 24;
 
     this.playerPokemon.moves.forEach((move, index) => {
       const row = Math.floor(index / 2);
@@ -230,19 +233,19 @@ export class BattleScene extends Phaser.Scene {
       const y = startY + row * (buttonHeight + gap);
 
       const button = this.add
-        .rectangle(x, y, buttonWidth, buttonHeight, 0x334155)
+        .rectangle(0, 0, buttonWidth, buttonHeight, 0x334155)
         .setOrigin(0)
         .setStrokeStyle(2, 0x475569);
 
-      const label = this.add.text(x + 12, y + 12, move.name, {
+      const label = this.add.text(12, 12, move.name, {
         fontSize: '16px',
         color: '#f8fafc',
       });
 
-      const container = this.add.container(0, 0, [button, label]);
+      const container = this.add.container(x, y, [button, label]);
       container.setSize(buttonWidth, buttonHeight);
       container.setInteractive(
-        new Phaser.Geom.Rectangle(x, y, buttonWidth, buttonHeight),
+        new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
         Phaser.Geom.Rectangle.Contains
       );
       container.on('pointerdown', () => this.handlePlayerMove(move));
@@ -380,17 +383,17 @@ export class BattleScene extends Phaser.Scene {
     const y = this.scale.height - buttonHeight - 24;
 
     const button = this.add
-      .rectangle(x, y, buttonWidth, buttonHeight, 0x22c55e)
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0x22c55e)
       .setOrigin(0)
       .setStrokeStyle(2, 0x166534);
-    const label = this.add.text(x + 20, y + 14, 'Continue', {
+    const label = this.add.text(20, 14, 'Continue', {
       fontSize: '18px',
       color: '#0f172a',
     });
-    const container = this.add.container(0, 0, [button, label]);
+    const container = this.add.container(x, y, [button, label]);
     container.setSize(buttonWidth, buttonHeight);
     container.setInteractive(
-      new Phaser.Geom.Rectangle(x, y, buttonWidth, buttonHeight),
+      new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     container.on('pointerdown', () => {
