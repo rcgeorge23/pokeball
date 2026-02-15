@@ -52,6 +52,55 @@
         transform: translateY(1px);
       }
 
+      #pokedex-open-button {
+        position: fixed;
+        right: 24px;
+        top: 24px;
+        z-index: 10;
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        background: #2563eb;
+        color: #eff6ff;
+        font-size: 15px;
+        font-weight: 700;
+        touch-action: manipulation;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5);
+      }
+
+      #pokedex-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        flex-direction: column;
+        gap: 20px;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.96);
+        color: #e2e8f0;
+        font-family: sans-serif;
+      }
+
+      #pokedex-panel h2 {
+        margin: 0;
+      }
+
+      #pokedex-list {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      #pokedex-close-button {
+        align-self: flex-start;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: #22c55e;
+        color: #052e16;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
       canvas {
         touch-action: none;
       }
@@ -61,6 +110,12 @@
     <div id="app"></div>
     <div id="joystick"></div>
     <button id="battle-button" type="button">Battle</button>
+    <button id="pokedex-open-button" type="button">Open Pokédex</button>
+    <section id="pokedex-panel" aria-hidden="true">
+      <h2>Pokédex</h2>
+      <ul id="pokedex-list"></ul>
+      <button id="pokedex-close-button" type="button">Close Pokédex</button>
+    </section>
     <script src="https://cdn.jsdelivr.net/gh/bobboteck/JoyStick/joy.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
