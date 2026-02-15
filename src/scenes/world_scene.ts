@@ -28,6 +28,10 @@ export class WorldScene extends Phaser.Scene {
   private touchDirections = new Map<string, Phaser.Math.Vector2>();
   private joystickElement?: HTMLElement;
   private battleButton?: HTMLButtonElement;
+  private pokedexOpenButton?: HTMLButtonElement;
+  private pokedexPanel?: HTMLElement;
+  private pokedexList?: HTMLElement;
+  private pokedexCloseButton?: HTMLButtonElement;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -123,6 +127,8 @@ export class WorldScene extends Phaser.Scene {
         }
       )
       .setScrollFactor(0);
+
+    this.setupPokedexUi();
   }
 
   update(time: number): void {
@@ -260,6 +266,90 @@ export class WorldScene extends Phaser.Scene {
       this.battleButton.textContent = 'Battle';
       this.battleButton.removeEventListener('click', onBattlePress);
       this.battleButton = undefined;
+    });
+  }
+
+  private setupPokedexUi(): void {
+    const pokedexOpenButton = document.getElementById('pokedex-open-button');
+    const pokedexPanel = document.getElementById('pokedex-panel');
+    const pokedexList = document.getElementById('pokedex-list');
+    const pokedexCloseButton = document.getElementById('pokedex-close-button');
+
+    if (
+      !pokedexOpenButton ||
+      !pokedexPanel ||
+      !pokedexList ||
+      !pokedexCloseButton
+    ) {
+      return;
+    }
+
+    this.pokedexOpenButton = pokedexOpenButton as HTMLButtonElement;
+    this.pokedexPanel = pokedexPanel;
+    this.pokedexList = pokedexList;
+    this.pokedexCloseButton = pokedexCloseButton as HTMLButtonElement;
+
+    const openPokedex = () => {
+      this.refreshPokedexList();
+      if (!this.pokedexPanel) {
+        return;
+      }
+
+      this.pokedexPanel.style.display = 'flex';
+      this.pokedexPanel.setAttribute('aria-hidden', 'false');
+    };
+
+    const closePokedex = () => {
+      if (!this.pokedexPanel) {
+        return;
+      }
+
+      this.pokedexPanel.style.display = 'none';
+      this.pokedexPanel.setAttribute('aria-hidden', 'true');
+    };
+
+    this.pokedexOpenButton.addEventListener('click', openPokedex);
+    this.pokedexCloseButton.addEventListener('click', closePokedex);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.pokedexOpenButton?.removeEventListener('click', openPokedex);
+      this.pokedexCloseButton?.removeEventListener('click', closePokedex);
+
+      if (this.pokedexPanel) {
+        this.pokedexPanel.style.display = 'none';
+        this.pokedexPanel.setAttribute('aria-hidden', 'true');
+      }
+
+      this.pokedexOpenButton = undefined;
+      this.pokedexPanel = undefined;
+      this.pokedexList = undefined;
+      this.pokedexCloseButton = undefined;
+    });
+  }
+
+  private refreshPokedexList(): void {
+    if (!this.pokedexList) {
+      return;
+    }
+
+    const pokemonData =
+      (this.cache.json.get('pokemon') as { id: string; name: string }[]) ?? [];
+    const nameById = new Map(pokemonData.map((pokemon) => [pokemon.id, pokemon.name]));
+
+    const pokedexList = this.pokedexList;
+    pokedexList.innerHTML = '';
+
+    if (this.playerState.pokedex.length === 0) {
+      const entry = document.createElement('li');
+      entry.textContent = 'No Pokémon discovered yet.';
+      pokedexList.append(entry);
+      return;
+    }
+
+    this.playerState.pokedex.forEach((pokemonId) => {
+      const entry = document.createElement('li');
+      entry.textContent = nameById.get(pokemonId) ?? pokemonId;
+      pokedexList.append(entry);
     });
   }
 
