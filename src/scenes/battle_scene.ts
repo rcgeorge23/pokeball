@@ -5,6 +5,8 @@ import {
   calculateDamage,
   createTrainerState,
   decideFirstActor,
+  doesMoveHit,
+  BattleMove,
   MoveDefinition,
   PokemonDefinition,
   PokemonInstance,
@@ -270,7 +272,7 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private handlePlayerMove(move: MoveDefinition): void {
+  private handlePlayerMove(move: BattleMove): void {
     if (this.isResolving || !this.playerPokemon || !this.opponentPokemon) {
       return;
     }
@@ -314,7 +316,7 @@ export class BattleScene extends Phaser.Scene {
 
   private resolveAction(
     attackerSide: 'player' | 'opponent',
-    move: MoveDefinition
+    move: BattleMove
   ): 'continue' | 'switching' | 'ended' {
     if (!this.playerPokemon || !this.opponentPokemon) {
       return 'ended';
@@ -325,11 +327,17 @@ export class BattleScene extends Phaser.Scene {
     const defender =
       attackerSide === 'player' ? this.opponentPokemon : this.playerPokemon;
 
-    const damage = calculateDamage(attacker, defender, move);
+    this.logText?.setText(`${attacker.name} used ${move.name}!`);
 
+    const didHit = doesMoveHit(move, () => Phaser.Math.FloatBetween(0, 1));
+    if (!didHit) {
+      this.logText?.setText(`${attacker.name} used ${move.name}! It missed!`);
+      return 'continue';
+    }
+
+    const damage = calculateDamage(attacker, defender, move);
     defender.hp = Math.max(0, defender.hp - damage);
     this.updateHpBars();
-    this.logText?.setText(`${attacker.name} used ${move.name}!`);
 
     if (defender.hp > 0) {
       return 'continue';
