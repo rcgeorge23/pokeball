@@ -24,7 +24,7 @@ Done when: speed affects who goes first and it’s visible in logs.
   - [x] accuracy (0–1, default 1)
   - [x] critChance (0–1, default e.g. 0.1)
   - [x] critMultiplier (default e.g. 1.5)
-- [ ] Apply miss chance and log “It missed!”
+- [x] Apply miss chance and log “It missed!” (commit ac2308d)
 - [ ] Apply critical hits and log “Critical hit!”
 - [ ] Add small camera shake on crit (use Phaser Camera Shake)
 

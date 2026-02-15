@@ -7,7 +7,8 @@
   {
     "id": "ember",
     "name": "Ember",
-    "power": 14
+    "power": 14,
+    "accuracy": 0.95
   },
   {
     "id": "leaf_blade",
@@ -17,6 +18,7 @@
   {
     "id": "spark",
     "name": "Spark",
-    "power": 15
+    "power": 15,
+    "accuracy": 0.9
   }
 ]

@@ -106,6 +106,14 @@ export function calculateDamage(
   return Math.max(1, Math.floor(base));
 }
 
+export function doesMoveHit(
+  move: Pick<MoveDefinition, 'accuracy'>,
+  rng: () => number = Math.random
+): boolean {
+  const accuracy = Math.min(1, Math.max(0, move.accuracy ?? 1));
+  return rng() < accuracy;
+}
+
 export function decideFirstActor(
   pokemonA: PokemonInstance,
   pokemonB: PokemonInstance,
