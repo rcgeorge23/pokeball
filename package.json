@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsc -p tsconfig.test.json && node --test .tmp-tests/tests/joystick_input.test.js",
+    "test:watch": "tsc -p tsconfig.test.json && node --test --watch .tmp-tests/tests/joystick_input.test.js"
   },
   "dependencies": {
     "phaser": "^3.80.1"

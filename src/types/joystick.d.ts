@@ -1,14 +1,14 @@
 interface JoyStickData {
-  x?: number;
-  y?: number;
-  X?: number;
-  Y?: number;
-  posX?: number;
-  posY?: number;
-  positionX?: number;
-  positionY?: number;
+  x?: number | string;
+  y?: number | string;
+  X?: number | string;
+  Y?: number | string;
+  posX?: number | string;
+  posY?: number | string;
+  positionX?: number | string;
+  positionY?: number | string;
   direction?: string;
-  distance?: number;
+  distance?: number | string;
 }
 
 interface JoyStick {
