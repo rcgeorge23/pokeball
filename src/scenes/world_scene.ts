@@ -27,6 +27,9 @@ export class WorldScene extends Phaser.Scene {
   private lastSaveTime = 0;
   private touchDirections = new Map<string, Phaser.Math.Vector2>();
   private joystickElement?: HTMLElement;
+  private battleButton?: HTMLButtonElement;
+  private readonly isTouchDevice =
+    'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   constructor() {
     super('WorldScene');
@@ -174,28 +177,10 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    if (
-      this.nearbyTrainer &&
-      this.interactKey &&
-      Phaser.Input.Keyboard.JustDown(this.interactKey)
-    ) {
-      updatePlayerPosition(this.player.x, this.player.y);
-      persistPlayerState();
-      this.statusText?.setText('Battle starting...');
-      this.scene.start('BattleScene', {
-        player: {
-          name: this.playerState?.name ?? 'You',
-          party: this.playerState?.party ?? [],
-        },
-        opponent: {
-          id: this.nearbyTrainer.definition.id,
-          name: this.nearbyTrainer.definition.name,
-          party: this.nearbyTrainer.definition.party,
-          defeated: this.defeatedTrainerIds.has(
-            this.nearbyTrainer.definition.id
-          ),
-        },
-      });
+    this.updateBattleButton();
+
+    if (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      this.startNearbyBattle();
     }
 
     if (time - this.lastSaveTime > 1500) {
@@ -247,6 +232,67 @@ export class WorldScene extends Phaser.Scene {
         this.joystickElement.style.display = 'none';
         this.joystickElement.innerHTML = '';
       }
+    });
+
+    this.createBattleButton();
+  }
+
+  private createBattleButton(): void {
+    const battleButton = document.getElementById('battle-button');
+    if (!battleButton || !this.isTouchDevice) {
+      return;
+    }
+
+    this.battleButton = battleButton as HTMLButtonElement;
+    this.battleButton.style.display = 'none';
+    const onBattlePress = () => {
+      this.startNearbyBattle();
+    };
+
+    this.battleButton.addEventListener('click', onBattlePress);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (!this.battleButton) {
+        return;
+      }
+
+      this.battleButton.style.display = 'none';
+      this.battleButton.textContent = 'Battle';
+      this.battleButton.removeEventListener('click', onBattlePress);
+      this.battleButton = undefined;
+    });
+  }
+
+  private updateBattleButton(): void {
+    if (!this.battleButton) {
+      return;
+    }
+
+    this.battleButton.style.display = this.nearbyTrainer ? 'block' : 'none';
+    this.battleButton.textContent = this.nearbyTrainer
+      ? `Battle ${this.nearbyTrainer.definition.name}`
+      : 'Battle';
+  }
+
+  private startNearbyBattle(): void {
+    if (!this.player || !this.nearbyTrainer) {
+      return;
+    }
+
+    updatePlayerPosition(this.player.x, this.player.y);
+    persistPlayerState();
+    this.statusText?.setText('Battle starting...');
+    this.scene.start('BattleScene', {
+      player: {
+        name: this.playerState?.name ?? 'You',
+        party: this.playerState?.party ?? [],
+      },
+      opponent: {
+        id: this.nearbyTrainer.definition.id,
+        name: this.nearbyTrainer.definition.name,
+        party: this.nearbyTrainer.definition.party,
+        defeated: this.defeatedTrainerIds.has(this.nearbyTrainer.definition.id),
+      },
     });
   }
 }
