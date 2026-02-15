@@ -2,6 +2,15 @@ export interface MoveDefinition {
   id: string;
   name: string;
   power: number;
+  accuracy?: number;
+  critChance?: number;
+  critMultiplier?: number;
+}
+
+export interface BattleMove extends MoveDefinition {
+  accuracy: number;
+  critChance: number;
+  critMultiplier: number;
 }
 
 export interface PokemonDefinition {
@@ -22,7 +31,7 @@ export interface PokemonInstance {
   attack: number;
   defense: number;
   speed: number;
-  moves: MoveDefinition[];
+  moves: BattleMove[];
 }
 
 export interface TrainerState {
@@ -54,7 +63,12 @@ export function createPokemonInstance(
     if (!move) {
       throw new Error(`Missing move definition for ${moveId}`);
     }
-    return move;
+    return {
+      ...move,
+      accuracy: move.accuracy ?? 1,
+      critChance: move.critChance ?? 0.1,
+      critMultiplier: move.critMultiplier ?? 1.5,
+    };
   });
 
   return {
