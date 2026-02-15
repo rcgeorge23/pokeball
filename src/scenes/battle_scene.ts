@@ -4,6 +4,7 @@ import {
   buildIndex,
   calculateDamage,
   createTrainerState,
+  decideFirstActor,
   MoveDefinition,
   PokemonDefinition,
   PokemonInstance,
@@ -261,85 +262,101 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
 
-    const opponentFaintedName = this.opponentPokemon.name;
-    const damage = calculateDamage(
+    const opponentMove = Phaser.Utils.Array.GetRandom(
+      this.opponentPokemon.moves
+    );
+    const firstActor = decideFirstActor(
       this.playerPokemon,
       this.opponentPokemon,
-      move
+      () => Phaser.Math.FloatBetween(0, 1)
     );
-    this.opponentPokemon.hp = Math.max(0, this.opponentPokemon.hp - damage);
-    this.updateHpBars();
-    this.logText?.setText(`${this.playerPokemon.name} used ${move.name}!`);
 
-    if (this.opponentPokemon.hp <= 0) {
+    const firstLabel =
+      firstActor === 'a' ? this.playerPokemon.name : this.opponentPokemon.name;
+    this.logText?.setText(`Turn order: ${firstLabel} moves first!`);
+
+    const firstMove = firstActor === 'a' ? move : opponentMove;
+    const secondMove = firstActor === 'a' ? opponentMove : move;
+    const firstSide = firstActor === 'a' ? 'player' : 'opponent';
+    const secondSide = firstSide === 'player' ? 'opponent' : 'player';
+
+    this.time.delayedCall(700, () => {
+      const firstResult = this.resolveAction(firstSide, firstMove);
+      if (firstResult !== 'continue') {
+        return;
+      }
+
+      this.time.delayedCall(700, () => {
+        const secondResult = this.resolveAction(secondSide, secondMove);
+        if (secondResult === 'continue') {
+          this.isResolving = false;
+          this.setButtonsEnabled(true);
+        }
+      });
+    });
+  }
+
+  private resolveAction(
+    attackerSide: 'player' | 'opponent',
+    move: MoveDefinition
+  ): 'continue' | 'switching' | 'ended' {
+    if (!this.playerPokemon || !this.opponentPokemon) {
+      return 'ended';
+    }
+
+    const attacker =
+      attackerSide === 'player' ? this.playerPokemon : this.opponentPokemon;
+    const defender =
+      attackerSide === 'player' ? this.opponentPokemon : this.playerPokemon;
+
+    const damage = calculateDamage(attacker, defender, move);
+
+    defender.hp = Math.max(0, defender.hp - damage);
+    this.updateHpBars();
+    this.logText?.setText(`${attacker.name} used ${move.name}!`);
+
+    if (defender.hp > 0) {
+      return 'continue';
+    }
+
+    if (attackerSide === 'player') {
       const nextOpponentIndex = this.opponentPokemonIndex + 1;
       if (
         this.opponentTrainer &&
         nextOpponentIndex < this.opponentTrainer.party.length
       ) {
-        this.logText?.setText(`${opponentFaintedName} fainted!`);
+        const faintedName = defender.name;
         this.time.delayedCall(700, () => {
           this.setOpponentPokemon(nextOpponentIndex);
           this.logText?.setText(
-            `${this.opponentTrainer?.name} sent out ${this.opponentPokemon?.name}!`
+            `${faintedName} fainted! ${this.opponentTrainer?.name} sent out ${this.opponentPokemon?.name}!`
           );
           this.isResolving = false;
           this.setButtonsEnabled(true);
         });
-        return;
+        return 'switching';
       }
 
       this.endBattle('win');
-      return;
+      return 'ended';
     }
 
-    this.time.delayedCall(700, () => this.resolveOpponentTurn());
-  }
-
-  private resolveOpponentTurn(): void {
-    if (!this.playerPokemon || !this.opponentPokemon) {
-      return;
+    const nextPlayerIndex = this.playerPokemonIndex + 1;
+    if (this.playerTrainer && nextPlayerIndex < this.playerTrainer.party.length) {
+      const faintedName = defender.name;
+      this.time.delayedCall(700, () => {
+        this.setPlayerPokemon(nextPlayerIndex);
+        this.logText?.setText(
+          `${faintedName} fainted! Go ${this.playerPokemon?.name}!`
+        );
+        this.isResolving = false;
+        this.setButtonsEnabled(true);
+      });
+      return 'switching';
     }
 
-    const opponentMove = Phaser.Utils.Array.GetRandom(
-      this.opponentPokemon.moves
-    );
-    const damage = calculateDamage(
-      this.opponentPokemon,
-      this.playerPokemon,
-      opponentMove
-    );
-
-    this.playerPokemon.hp = Math.max(0, this.playerPokemon.hp - damage);
-    this.updateHpBars();
-    this.logText?.setText(
-      `${this.opponentPokemon.name} used ${opponentMove.name}!`
-    );
-
-    if (this.playerPokemon.hp <= 0) {
-      const nextPlayerIndex = this.playerPokemonIndex + 1;
-      if (
-        this.playerTrainer &&
-        nextPlayerIndex < this.playerTrainer.party.length
-      ) {
-        const faintedName = this.playerPokemon.name;
-        this.time.delayedCall(700, () => {
-          this.setPlayerPokemon(nextPlayerIndex);
-          this.logText?.setText(
-            `${faintedName} fainted! Go ${this.playerPokemon?.name}!`
-          );
-          this.isResolving = false;
-          this.setButtonsEnabled(true);
-        });
-        return;
-      }
-
-      this.endBattle('lose');
-      return;
-    }
-
-    this.isResolving = false;
-    this.setButtonsEnabled(true);
+    this.endBattle('lose');
+    return 'ended';
   }
 
   private endBattle(result: 'win' | 'lose'): void {

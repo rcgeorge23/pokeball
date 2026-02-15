@@ -30,6 +30,8 @@ export interface TrainerState {
   party: PokemonInstance[];
 }
 
+export type TurnOrder = 'a' | 'b';
+
 export function buildIndex<T extends { id: string }>(items: T[]): Record<string, T> {
   return items.reduce<Record<string, T>>((acc, item) => {
     acc[item.id] = item;
@@ -88,4 +90,16 @@ export function calculateDamage(
 ): number {
   const base = move.power + attacker.attack - defender.defense;
   return Math.max(1, Math.floor(base));
+}
+
+export function decideFirstActor(
+  pokemonA: PokemonInstance,
+  pokemonB: PokemonInstance,
+  rng: () => number = Math.random
+): TurnOrder {
+  if (pokemonA.speed === pokemonB.speed) {
+    return rng() < 0.5 ? 'a' : 'b';
+  }
+
+  return pokemonA.speed > pokemonB.speed ? 'a' : 'b';
 }
