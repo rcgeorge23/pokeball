@@ -54,6 +54,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(data: BattleSceneData): void {
+    this.resetBattleState();
+
     this.opponentTrainerId = data.opponent.id;
     this.opponentAlreadyDefeated =
       data.opponent.defeated ??
@@ -115,6 +117,20 @@ export class BattleScene extends Phaser.Scene {
         color: '#e2e8f0',
       })
       .setScrollFactor(0);
+  }
+
+  private resetBattleState(): void {
+    this.time.removeAllEvents();
+    this.isResolving = false;
+    this.clearMoveButtons();
+    this.playerTrainer = undefined;
+    this.opponentTrainer = undefined;
+    this.playerPokemon = undefined;
+    this.opponentPokemon = undefined;
+    this.opponentTrainerId = undefined;
+    this.opponentAlreadyDefeated = false;
+    this.playerPokemonIndex = 0;
+    this.opponentPokemonIndex = 0;
   }
 
   private renderStatusPanels(): void {
