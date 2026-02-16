@@ -36,6 +36,9 @@ interface BattleSceneData {
 export class BattleScene extends Phaser.Scene {
   private static readonly CRIT_SHAKE_DURATION_MS = 180;
   private static readonly CRIT_SHAKE_INTENSITY = 0.006;
+  private static readonly ATTACK_LUNGE_DISTANCE = 26;
+  private static readonly ATTACK_LUNGE_DURATION_MS = 90;
+  private static readonly HIT_FLASH_DURATION_MS = 80;
 
   private playerTrainer?: TrainerState;
   private opponentTrainer?: TrainerState;
@@ -50,6 +53,8 @@ export class BattleScene extends Phaser.Scene {
   private opponentNameText?: Phaser.GameObjects.Text;
   private playerHpBarTween?: Phaser.Tweens.Tween;
   private opponentHpBarTween?: Phaser.Tweens.Tween;
+  private playerSprite?: Phaser.GameObjects.Image;
+  private opponentSprite?: Phaser.GameObjects.Image;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
   private opponentTrainerId?: string;
@@ -105,12 +110,12 @@ export class BattleScene extends Phaser.Scene {
       })
       .setScrollFactor(0);
 
-    this.add
+    this.playerSprite = this.add
       .image(this.scale.width * 0.25, this.scale.height * 0.55, 'player')
       .setScale(6)
       .setTint(0x38bdf8);
 
-    this.add
+    this.opponentSprite = this.add
       .image(this.scale.width * 0.75, this.scale.height * 0.3, 'player')
       .setScale(6)
       .setTint(0xf97316);
@@ -135,6 +140,8 @@ export class BattleScene extends Phaser.Scene {
     this.opponentTrainer = undefined;
     this.playerPokemon = undefined;
     this.opponentPokemon = undefined;
+    this.playerSprite = undefined;
+    this.opponentSprite = undefined;
     this.opponentTrainerId = undefined;
     this.opponentAlreadyDefeated = false;
     this.playerPokemonIndex = 0;
@@ -336,6 +343,8 @@ export class BattleScene extends Phaser.Scene {
     this.logText?.setText(`${attacker.name} used ${move.name}!`);
 
     const didHit = doesMoveHit(move, () => Phaser.Math.FloatBetween(0, 1));
+    this.playAttackAnimation(attackerSide, didHit);
+
     if (!didHit) {
       this.logText?.setText(`${attacker.name} used ${move.name}! It missed!`);
       return 'continue';
@@ -397,6 +406,51 @@ export class BattleScene extends Phaser.Scene {
 
     this.endBattle('lose');
     return 'ended';
+  }
+
+  private playAttackAnimation(
+    attackerSide: 'player' | 'opponent',
+    didHit: boolean
+  ): void {
+    const attackerSprite =
+      attackerSide === 'player' ? this.playerSprite : this.opponentSprite;
+    const defenderSprite =
+      attackerSide === 'player' ? this.opponentSprite : this.playerSprite;
+
+    if (!attackerSprite || !defenderSprite) {
+      return;
+    }
+
+    const lungeDistance =
+      attackerSide === 'player'
+        ? BattleScene.ATTACK_LUNGE_DISTANCE
+        : -BattleScene.ATTACK_LUNGE_DISTANCE;
+
+    this.tweens.add({
+      targets: attackerSprite,
+      x: attackerSprite.x + lungeDistance,
+      duration: BattleScene.ATTACK_LUNGE_DURATION_MS,
+      yoyo: true,
+      ease: 'Sine.InOut',
+    });
+
+    if (!didHit) {
+      return;
+    }
+
+    defenderSprite.setTintFill(0xffffff);
+    this.tweens.add({
+      targets: defenderSprite,
+      alpha: 0.35,
+      duration: BattleScene.HIT_FLASH_DURATION_MS,
+      yoyo: true,
+      repeat: 1,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        defenderSprite.clearTint();
+        defenderSprite.setAlpha(1);
+      },
+    });
   }
 
   private endBattle(result: 'win' | 'lose'): void {
