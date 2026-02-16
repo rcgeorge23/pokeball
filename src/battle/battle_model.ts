@@ -136,3 +136,39 @@ export function decideFirstActor(
 
   return pokemonA.speed > pokemonB.speed ? 'a' : 'b';
 }
+
+export function calculateExpectedDamage(
+  attacker: PokemonInstance,
+  defender: PokemonInstance,
+  move: BattleMove
+): number {
+  return calculateDamage(attacker, defender, move) * move.accuracy;
+}
+
+export function pickBestMoveByExpectedDamage(
+  attacker: PokemonInstance,
+  defender: PokemonInstance
+): BattleMove {
+  if (attacker.moves.length === 0) {
+    throw new Error(`${attacker.name} has no moves to choose from.`);
+  }
+
+  return attacker.moves.reduce((bestMove, candidateMove) => {
+    const bestExpectedDamage = calculateExpectedDamage(
+      attacker,
+      defender,
+      bestMove
+    );
+    const candidateExpectedDamage = calculateExpectedDamage(
+      attacker,
+      defender,
+      candidateMove
+    );
+
+    if (candidateExpectedDamage > bestExpectedDamage) {
+      return candidateMove;
+    }
+
+    return bestMove;
+  });
+}

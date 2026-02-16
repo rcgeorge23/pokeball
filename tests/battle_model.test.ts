@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 
 import {
   calculateDamage,
+  calculateExpectedDamage,
   doesMoveHit,
   isCriticalHit,
+  pickBestMoveByExpectedDamage,
   PokemonInstance,
 } from '../src/battle/battle_model.js';
 
@@ -59,4 +61,46 @@ test('calculateDamage applies critical multiplier when critical hit occurs', () 
 
   assert.equal(normalDamage, 16);
   assert.equal(criticalDamage, 24);
+});
+
+
+test('calculateExpectedDamage accounts for move accuracy', () => {
+  const expectedDamage = calculateExpectedDamage(attacker, defender, {
+    id: 'precise-strike',
+    name: 'Precise Strike',
+    power: 12,
+    accuracy: 0.75,
+    critChance: 0.1,
+    critMultiplier: 1.5,
+  });
+
+  assert.equal(expectedDamage, 12);
+});
+
+test('pickBestMoveByExpectedDamage selects highest expected damage move', () => {
+  const aiPokemon: PokemonInstance = {
+    ...attacker,
+    moves: [
+      {
+        id: 'heavy-slam',
+        name: 'Heavy Slam',
+        power: 18,
+        accuracy: 0.5,
+        critChance: 0.1,
+        critMultiplier: 1.5,
+      },
+      {
+        id: 'steady-hit',
+        name: 'Steady Hit',
+        power: 13,
+        accuracy: 0.9,
+        critChance: 0.1,
+        critMultiplier: 1.5,
+      },
+    ],
+  };
+
+  const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender);
+
+  assert.equal(selectedMove.id, 'steady-hit');
 });

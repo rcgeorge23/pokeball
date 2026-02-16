@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {
   buildIndex,
   calculateDamage,
+  pickBestMoveByExpectedDamage,
   createTrainerState,
   decideFirstActor,
   doesMoveHit,
@@ -296,8 +297,9 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
 
-    const opponentMove = Phaser.Utils.Array.GetRandom(
-      this.opponentPokemon.moves
+    const opponentMove = pickBestMoveByExpectedDamage(
+      this.opponentPokemon,
+      this.playerPokemon
     );
     const firstActor = decideFirstActor(
       this.playerPokemon,

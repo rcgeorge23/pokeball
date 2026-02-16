@@ -39,7 +39,7 @@ Done when: misses/criticals happen and are clearly communicated.
 Done when: battles visibly animate and feel responsive.
 
 ### 1.4 Improve AI (from random to reasonable)
-- [ ] Replace random move selection with expected damage maximization (consider accuracy).
+- [x] Replace random move selection with expected damage maximization (consider accuracy). (PR pending)
 - [ ] Add a small randomness factor so AI isn’t perfectly deterministic (e.g. 10% chance pick 2nd best).
 - [ ] Log AI choice only in debug mode (toggle).
 
