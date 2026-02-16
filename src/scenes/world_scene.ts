@@ -28,6 +28,7 @@ export class WorldScene extends Phaser.Scene {
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
   private spottingTrainer: TrainerInstance | null = null;
+  private lineOfSightSequenceActive = false;
   private playerState!: PlayerState;
   private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
@@ -161,20 +162,24 @@ export class WorldScene extends Phaser.Scene {
     const speed = 180;
     const velocity = new Phaser.Math.Vector2(0, 0);
 
-    if (this.cursors?.left?.isDown || this.moveKeys?.A?.isDown) {
+    if (this.lineOfSightSequenceActive) {
+      this.player.setVelocity(0, 0);
+    }
+
+    if (!this.lineOfSightSequenceActive && (this.cursors?.left?.isDown || this.moveKeys?.A?.isDown)) {
       velocity.x -= 1;
     }
-    if (this.cursors?.right?.isDown || this.moveKeys?.D?.isDown) {
+    if (!this.lineOfSightSequenceActive && (this.cursors?.right?.isDown || this.moveKeys?.D?.isDown)) {
       velocity.x += 1;
     }
-    if (this.cursors?.up?.isDown || this.moveKeys?.W?.isDown) {
+    if (!this.lineOfSightSequenceActive && (this.cursors?.up?.isDown || this.moveKeys?.W?.isDown)) {
       velocity.y -= 1;
     }
-    if (this.cursors?.down?.isDown || this.moveKeys?.S?.isDown) {
+    if (!this.lineOfSightSequenceActive && (this.cursors?.down?.isDown || this.moveKeys?.S?.isDown)) {
       velocity.y += 1;
     }
 
-    for (const direction of this.touchDirections.values()) {
+    for (const direction of this.lineOfSightSequenceActive ? [] : this.touchDirections.values()) {
       velocity.x += direction.x;
       velocity.y += direction.y;
     }
@@ -201,6 +206,8 @@ export class WorldScene extends Phaser.Scene {
     this.nearbyTrainer =
       this.npcController?.findNearbyTrainer(this.player, 80) ?? null;
 
+    this.maybeStartLineOfSightEncounter();
+
     if (this.hintText) {
       if (
         this.spottingTrainer &&
@@ -223,7 +230,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.updateBattleButton();
 
-    if (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+    if (!this.lineOfSightSequenceActive && this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       this.startNearbyBattle();
     }
 
@@ -423,7 +430,8 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.battleButton.style.display = this.nearbyTrainer ? 'block' : 'none';
+    this.battleButton.style.display =
+      this.nearbyTrainer && !this.lineOfSightSequenceActive ? 'block' : 'none';
     this.battleButton.textContent = this.nearbyTrainer
       ? `Battle ${this.nearbyTrainer.definition.name}`
       : 'Battle';
@@ -516,8 +524,77 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+
+  private maybeStartLineOfSightEncounter(): void {
+    if (
+      this.lineOfSightSequenceActive ||
+      !this.player ||
+      !this.spottingTrainer ||
+      this.defeatedTrainerIds.has(this.spottingTrainer.definition.id)
+    ) {
+      return;
+    }
+
+    const trainer = this.spottingTrainer;
+    this.lineOfSightSequenceActive = true;
+    this.showTrainerNotice(trainer);
+
+    this.time.delayedCall(480, () => {
+      if (!this.player || !this.npcController) {
+        this.lineOfSightSequenceActive = false;
+        return;
+      }
+
+      const didStartApproach = this.npcController.startApproach(
+        trainer.definition.id,
+        this.player,
+        {
+          speed: 120,
+          stopDistance: 56,
+          maxDurationMs: 3200,
+          onComplete: () => {
+            const refreshedTrainer =
+              this.npcController?.getTrainerById(trainer.definition.id) ?? trainer;
+            this.startBattleWithTrainer(refreshedTrainer);
+          },
+        }
+      );
+
+      if (!didStartApproach) {
+        this.lineOfSightSequenceActive = false;
+      }
+    });
+  }
+
+  private showTrainerNotice(trainer: TrainerInstance): void {
+    const exclamation = this.add
+      .text(trainer.sprite.x, trainer.sprite.y - 44, '!', {
+        fontSize: '28px',
+        color: '#facc15',
+        stroke: '#7c2d12',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
+
+    this.tweens.add({
+      targets: exclamation,
+      y: exclamation.y - 10,
+      alpha: 0.35,
+      duration: 220,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => exclamation.destroy(),
+    });
+  }
+
+  private startBattleWithTrainer(trainer: TrainerInstance): void {
+    this.lineOfSightSequenceActive = false;
+    this.nearbyTrainer = trainer;
+    this.startNearbyBattle();
+  }
+
   private startNearbyBattle(): void {
-    if (!this.player || !this.nearbyTrainer) {
+    if (!this.player || !this.nearbyTrainer || this.lineOfSightSequenceActive) {
       return;
     }
 

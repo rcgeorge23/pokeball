@@ -87,11 +87,11 @@ Done when: collisions come from the tilemap, not hard-coded rectangles.
 ### 3.2 Trainer line-of-sight battles (classic feel)
 - [x] Give trainers facing direction (for stationary and wander). (commit in this PR)
 - [x] Implement LOS cone/ray check. (commit a73263a)
-- [ ] If player enters LOS:
-  - [ ] trainer notices (exclamation marker)
-  - [ ] trainer walks toward player
-  - [ ] battle auto-starts
-- [ ] Keep “Press E” as fallback interaction option.
+- [x] If player enters LOS: (commit in this commit)
+  - [x] trainer notices (exclamation marker) (commit in this commit)
+  - [x] trainer walks toward player (commit in this commit)
+  - [x] battle auto-starts (commit in this commit)
+- [x] Keep “Press E” as fallback interaction option. (commit in this commit)
 
 Done when: you can trigger battles by walking into a trainer’s sightline.
 
