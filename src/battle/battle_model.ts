@@ -100,10 +100,13 @@ export function createTrainerState(
 export function calculateDamage(
   attacker: PokemonInstance,
   defender: PokemonInstance,
-  move: MoveDefinition
+  move: Pick<MoveDefinition, 'power' | 'critMultiplier'>,
+  isCritical = false
 ): number {
   const base = move.power + attacker.attack - defender.defense;
-  return Math.max(1, Math.floor(base));
+  const critMultiplier = Math.max(1, move.critMultiplier ?? 1.5);
+  const total = isCritical ? base * critMultiplier : base;
+  return Math.max(1, Math.floor(total));
 }
 
 export function doesMoveHit(
@@ -112,6 +115,14 @@ export function doesMoveHit(
 ): boolean {
   const accuracy = Math.min(1, Math.max(0, move.accuracy ?? 1));
   return rng() < accuracy;
+}
+
+export function isCriticalHit(
+  move: Pick<MoveDefinition, 'critChance'>,
+  rng: () => number = Math.random
+): boolean {
+  const critChance = Math.min(1, Math.max(0, move.critChance ?? 0.1));
+  return rng() < critChance;
 }
 
 export function decideFirstActor(

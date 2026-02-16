@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "outDir": ".tmp-tests"
   },
-  "include": ["src/world/joystick_input.ts", "src/types/joystick.d.ts", "tests/**/*.ts"]
+  "include": ["src/world/joystick_input.ts", "src/battle/battle_model.ts", "src/types/joystick.d.ts", "tests/**/*.ts"]
 }
