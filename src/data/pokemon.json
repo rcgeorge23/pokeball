@@ -27,6 +27,6 @@
     "attack": 13,
     "defense": 7,
     "speed": 13,
-    "moves": ["tackle", "spark"]
+    "moves": ["tackle", "spark", "venom_jab"]
   }
 ]

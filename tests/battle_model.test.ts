@@ -7,6 +7,7 @@ import {
   doesMoveHit,
   doesStatusInflictApply,
   getTypeEffectivenessMultiplier,
+  getPoisonTickDamage,
   isCriticalHit,
   pickBestMoveByExpectedDamage,
   PokemonInstance,
@@ -128,6 +129,15 @@ test('doesStatusInflictApply respects clamped chance', () => {
     doesStatusInflictApply({ condition: 'burn', chance: 0.3 }, () => 0.3),
     false
   );
+  assert.equal(
+    doesStatusInflictApply({ condition: 'poison', chance: 0.6 }, () => 0.2),
+    true
+  );
+});
+
+test('getPoisonTickDamage returns 10% of max HP with minimum 1', () => {
+  assert.equal(getPoisonTickDamage({ maxHp: 80 }), 8);
+  assert.equal(getPoisonTickDamage({ maxHp: 5 }), 1);
 });
 
 test('calculateExpectedDamage accounts for move accuracy', () => {

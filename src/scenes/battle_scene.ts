@@ -15,6 +15,7 @@ import {
   PokemonInstance,
   TrainerState,
   getTypeEffectivenessMultiplier,
+  getPoisonTickDamage,
 } from '../battle/battle_model';
 import { applyVictoryReward } from '../battle/rewards';
 import {
@@ -246,14 +247,22 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.playerStatusText?.setText(
-      this.playerPokemon.status === 'burn' ? 'Status: Burned' : 'Status: Healthy'
-    );
+    this.playerStatusText?.setText(this.getStatusLabel(this.playerPokemon.status));
     this.opponentStatusText?.setText(
-      this.opponentPokemon.status === 'burn'
-        ? 'Status: Burned'
-        : 'Status: Healthy'
+      this.getStatusLabel(this.opponentPokemon.status)
     );
+  }
+
+  private getStatusLabel(status?: PokemonInstance['status']): string {
+    if (status === 'burn') {
+      return 'Status: Burned';
+    }
+
+    if (status === 'poison') {
+      return 'Status: Poisoned';
+    }
+
+    return 'Status: Healthy';
   }
 
   private clearMoveButtons(): void {
@@ -363,11 +372,84 @@ export class BattleScene extends Phaser.Scene {
       this.time.delayedCall(700, () => {
         const secondResult = this.resolveAction(secondSide, secondMove);
         if (secondResult === 'continue') {
-          this.isResolving = false;
-          this.setButtonsEnabled(true);
+          const statusResult = this.applyEndOfTurnStatuses();
+          if (statusResult === 'continue') {
+            this.isResolving = false;
+            this.setButtonsEnabled(true);
+          }
         }
       });
     });
+  }
+
+  private applyEndOfTurnStatuses(): 'continue' | 'switching' | 'ended' {
+    if (!this.playerPokemon || !this.opponentPokemon) {
+      return 'ended';
+    }
+
+    const feedback: string[] = [];
+    const applyPoisonDamage = (pokemon: PokemonInstance): void => {
+      if (pokemon.hp <= 0 || pokemon.status !== 'poison') {
+        return;
+      }
+
+      const damage = getPoisonTickDamage(pokemon);
+      pokemon.hp = Math.max(0, pokemon.hp - damage);
+      feedback.push(`${pokemon.name} is hurt by poison!`);
+    };
+
+    applyPoisonDamage(this.playerPokemon);
+    applyPoisonDamage(this.opponentPokemon);
+
+    if (feedback.length === 0) {
+      return 'continue';
+    }
+
+    this.logText?.setText(feedback.join(' '));
+    this.updateHpBars(true);
+
+    if (this.playerPokemon.hp <= 0) {
+      const nextPlayerIndex = this.playerPokemonIndex + 1;
+      if (this.playerTrainer && nextPlayerIndex < this.playerTrainer.party.length) {
+        const faintedName = this.playerPokemon.name;
+        this.playSfx('faint');
+        this.time.delayedCall(700, () => {
+          this.setPlayerPokemon(nextPlayerIndex);
+          this.logText?.setText(`${faintedName} fainted from poison! Go ${this.playerPokemon?.name}!`);
+          this.isResolving = false;
+          this.setButtonsEnabled(true);
+        });
+        return 'switching';
+      }
+
+      this.endBattle('lose');
+      return 'ended';
+    }
+
+    if (this.opponentPokemon.hp <= 0) {
+      const nextOpponentIndex = this.opponentPokemonIndex + 1;
+      if (
+        this.opponentTrainer &&
+        nextOpponentIndex < this.opponentTrainer.party.length
+      ) {
+        const faintedName = this.opponentPokemon.name;
+        this.playSfx('faint');
+        this.time.delayedCall(700, () => {
+          this.setOpponentPokemon(nextOpponentIndex);
+          this.logText?.setText(
+            `${faintedName} fainted from poison! ${this.opponentTrainer?.name} sent out ${this.opponentPokemon?.name}!`
+          );
+          this.isResolving = false;
+          this.setButtonsEnabled(true);
+        });
+        return 'switching';
+      }
+
+      this.endBattle('win');
+      return 'ended';
+    }
+
+    return 'continue';
   }
 
   private isAiDebugLoggingEnabled(): boolean {
@@ -450,7 +532,9 @@ export class BattleScene extends Phaser.Scene {
       doesStatusInflictApply(move.statusInflict, () => Phaser.Math.FloatBetween(0, 1))
     ) {
       defender.status = move.statusInflict.condition;
-      feedback.push(`${defender.name} was burned!`);
+      const statusText =
+        move.statusInflict.condition === 'burn' ? 'burned' : 'poisoned';
+      feedback.push(`${defender.name} was ${statusText}!`);
       this.updateStatusTexts();
     }
 
