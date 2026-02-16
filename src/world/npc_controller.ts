@@ -1,12 +1,21 @@
 import Phaser from 'phaser';
 
 export type TrainerBehavior = 'stationary' | 'wander';
+export type FacingDirection = 'up' | 'down' | 'left' | 'right';
+
+const DIRECTION_TO_VECTOR: Record<FacingDirection, Phaser.Math.Vector2> = {
+  up: new Phaser.Math.Vector2(0, -1),
+  down: new Phaser.Math.Vector2(0, 1),
+  left: new Phaser.Math.Vector2(-1, 0),
+  right: new Phaser.Math.Vector2(1, 0),
+};
 
 export interface TrainerDefinition {
   id: string;
   name: string;
   party: string[];
   behavior: TrainerBehavior;
+  facing?: FacingDirection;
   x: number;
   y: number;
 }
@@ -15,6 +24,7 @@ export interface TrainerInstance {
   definition: TrainerDefinition;
   sprite: Phaser.Physics.Arcade.Image;
   statusLabel: Phaser.GameObjects.Text;
+  facingDirection: FacingDirection;
 }
 
 const WANDER_SPEED = 50;
@@ -27,6 +37,10 @@ class TrainerActor {
   private defeated = false;
 
   constructor(public readonly instance: TrainerInstance) {}
+
+  getFacingVector(): Phaser.Math.Vector2 {
+    return DIRECTION_TO_VECTOR[this.instance.facingDirection].clone();
+  }
 
   setDefeated(defeated: boolean): void {
     this.defeated = defeated;
@@ -64,6 +78,11 @@ class TrainerActor {
       new Phaser.Math.Vector2(0, -1),
       new Phaser.Math.Vector2(0, 0),
     ]);
+
+    const nextFacingDirection = vectorToFacingDirection(choice);
+    if (nextFacingDirection) {
+      this.instance.facingDirection = nextFacingDirection;
+    }
 
     this.currentVelocity.copy(choice).scale(WANDER_SPEED);
     this.instance.sprite.setVelocity(
@@ -115,6 +134,7 @@ export class NpcController {
           definition,
           sprite,
           statusLabel,
+          facingDirection: definition.facing ?? 'down',
         })
       );
     });
@@ -135,6 +155,18 @@ export class NpcController {
     });
   }
 
+  getFacingVector(trainerId: string): Phaser.Math.Vector2 | null {
+    const trainer = this.trainers.find(
+      (actor) => actor.instance.definition.id === trainerId
+    );
+
+    if (!trainer) {
+      return null;
+    }
+
+    return trainer.getFacingVector();
+  }
+
   findNearbyTrainer(
     player: Phaser.Physics.Arcade.Image,
     radius: number
@@ -153,4 +185,26 @@ export class NpcController {
     }
     return null;
   }
+}
+
+function vectorToFacingDirection(
+  velocity: Phaser.Math.Vector2
+): FacingDirection | null {
+  if (Math.abs(velocity.x) > Math.abs(velocity.y)) {
+    if (velocity.x > 0) {
+      return 'right';
+    }
+    if (velocity.x < 0) {
+      return 'left';
+    }
+  } else {
+    if (velocity.y > 0) {
+      return 'down';
+    }
+    if (velocity.y < 0) {
+      return 'up';
+    }
+  }
+
+  return null;
 }

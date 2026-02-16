@@ -85,7 +85,7 @@ Done when: at least one status exists end-to-end and is readable.
 Done when: collisions come from the tilemap, not hard-coded rectangles.
 
 ### 3.2 Trainer line-of-sight battles (classic feel)
-- [ ] Give trainers facing direction (for stationary and wander).
+- [x] Give trainers facing direction (for stationary and wander). (commit in this PR)
 - [ ] Implement LOS cone/ray check.
 - [ ] If player enters LOS:
   - [ ] trainer notices (exclamation marker)
