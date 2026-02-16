@@ -32,7 +32,7 @@ Done when: misses/criticals happen and are clearly communicated.
 
 ### 1.3 Battle “juice” (animations without new art)
 - [x] Tween HP bar changes instead of instant jumps. (PR pending)
-- [ ] Add attacker “lunge” tween + defender “hit flash” tween.
+- [x] Add attacker “lunge” tween + defender “hit flash” tween. (PR: add battle lunge/flash tweens)
 - [ ] Add a short sprite shake on hit (or camera shake on big hits).
 - [ ] Add simple sound hooks (stubbed functions is fine if assets not ready): playSfx("hit"), playSfx("faint").
 
