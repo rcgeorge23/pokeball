@@ -45,10 +45,10 @@ Done when: reloading recreates the exact same world from the saved seed.
 Done when: map generation produces a complete in-memory representation.
 
 ### 2.2 Render generated map in Phaser
-- [ ] Implement a simple renderer that converts `GeneratedMap` into a Phaser tile layer:
-  - [ ] Choose a small tileset (even placeholder colored tiles is fine).
-  - [ ] Create collision from generated collision data.
-  - [ ] Update camera bounds to match generated world bounds.
+- [x] Implement a simple renderer that converts `GeneratedMap` into a Phaser tile layer: (this commit)
+  - [x] Choose a small tileset (even placeholder colored tiles is fine). (this commit)
+  - [x] Create collision from generated collision data. (this commit)
+  - [x] Update camera bounds to match generated world bounds. (this commit)
 
 Done when: the world is generated and playable without any authored map.
 

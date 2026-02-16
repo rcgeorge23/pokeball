@@ -12,6 +12,8 @@ import {
   updatePlayerPosition,
 } from '../player/player_model';
 import { deriveJoystickDirection } from '../world/joystick_input';
+import { generateMapFromSeed } from '../world/generated_map';
+import { renderGeneratedMap } from '../world/generated_map_renderer';
 
 export class WorldScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -41,25 +43,19 @@ export class WorldScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
-    const tilemap = this.make.tilemap({ key: 'town-route-map' });
-    const mapTileset = tilemap.addTilesetImage('town_tiles', 'town-tiles');
-    let collisionLayer: Phaser.Tilemaps.TilemapLayer | null = null;
-    if (mapTileset) {
-      tilemap.createLayer('Ground', mapTileset, 0, 0);
-      collisionLayer = tilemap.createLayer('Collision', mapTileset, 0, 0);
-      collisionLayer?.setVisible(false);
-      collisionLayer?.setCollisionFromCollisionGroup();
-    }
-
-    const mapWidth = tilemap.widthInPixels;
-    const mapHeight = tilemap.heightInPixels;
-    const worldWidth = mapWidth > 0 ? mapWidth : width;
-    const worldHeight = mapHeight > 0 ? mapHeight : height;
     this.playerState = getPlayerState();
+    const generatedMap = generateMapFromSeed(this.playerState.worldSeed);
+    const { collisionLayer, worldWidth, worldHeight, tileSize } = renderGeneratedMap(
+      this,
+      generatedMap
+    );
     this.defeatedTrainerIds = new Set(this.playerState.defeatedTrainerIds);
 
-    const playerStartX = this.playerState.position?.x ?? width / 2;
-    const playerStartY = this.playerState.position?.y ?? height / 2;
+    const generatedSpawnX = generatedMap.spawnPoints.playerStart.x * tileSize + tileSize / 2;
+    const generatedSpawnY = generatedMap.spawnPoints.playerStart.y * tileSize + tileSize / 2;
+
+    const playerStartX = this.playerState.position?.x ?? generatedSpawnX;
+    const playerStartY = this.playerState.position?.y ?? generatedSpawnY;
 
     this.player = this.physics.add.image(
       playerStartX,
@@ -69,9 +65,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.setScale(4);
     this.player.setCollideWorldBounds(true);
 
-    if (collisionLayer) {
-      this.physics.add.collider(this.player, collisionLayer);
-    }
+    this.physics.add.collider(this.player, collisionLayer);
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -87,19 +81,15 @@ export class WorldScene extends Phaser.Scene {
       Phaser.Input.Keyboard.KeyCodes.E
     );
 
-    const trainerData =
-      this.cache.json.get('trainers') ?? ([] as TrainerDefinition[]);
-    this.npcController = new NpcController(
-      this,
-      trainerData as TrainerDefinition[]
+    const trainerData = this.buildGeneratedTrainerData(
+      (this.cache.json.get('trainers') ?? []) as TrainerDefinition[],
+      generatedMap.spawnPoints.trainers,
+      tileSize
     );
+    this.npcController = new NpcController(this, trainerData);
     this.npcController.setDefeatedTrainerIds(this.playerState.defeatedTrainerIds);
 
     this.npcController.getInstances().forEach((trainer) => {
-      if (!collisionLayer) {
-        return;
-      }
-
       this.physics.add.collider(trainer.sprite, collisionLayer);
     });
 
@@ -213,6 +203,33 @@ export class WorldScene extends Phaser.Scene {
       persistPlayerState();
       this.lastSaveTime = time;
     }
+  }
+
+
+  private buildGeneratedTrainerData(
+    trainerTemplates: TrainerDefinition[],
+    trainerPoints: Array<{ x: number; y: number }>,
+    tileSize: number
+  ): TrainerDefinition[] {
+    const fallbackTemplate: TrainerDefinition = {
+      id: 'trainer-template-fallback',
+      name: 'Wanderer',
+      party: ['leafling'],
+      behavior: 'stationary',
+      x: 0,
+      y: 0,
+    };
+
+    return trainerPoints.map((point, index) => {
+      const template = trainerTemplates[index % Math.max(1, trainerTemplates.length)] ?? fallbackTemplate;
+      const id = `generated-trainer-${index}`;
+      return {
+        ...template,
+        id,
+        x: point.x * tileSize + tileSize / 2,
+        y: point.y * tileSize + tileSize / 2,
+      };
+    });
   }
 
   private createTouchControls(): void {
