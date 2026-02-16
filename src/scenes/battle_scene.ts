@@ -21,8 +21,10 @@ import {
 import { applyVictoryReward } from '../battle/rewards';
 import {
   addPokemonToPokedex,
+  getPlayerPartyCondition,
   isTrainerDefeated,
   markTrainerDefeated,
+  setPlayerPartyCondition,
 } from '../player/player_model';
 
 interface BattleSceneData {
@@ -101,6 +103,20 @@ export class BattleScene extends Phaser.Scene {
       pokemonIndex,
       moveIndex
     );
+    const persistedPartyCondition = getPlayerPartyCondition();
+    this.playerTrainer.party.forEach((pokemon, index) => {
+      const condition = persistedPartyCondition[index];
+      if (!condition) {
+        return;
+      }
+
+      pokemon.hp = Phaser.Math.Clamp(
+        Math.round(pokemon.maxHp * condition.hpRatio),
+        0,
+        pokemon.maxHp
+      );
+      pokemon.status = condition.status;
+    });
     this.opponentTrainer = createTrainerState(
       data.opponent.name,
       data.opponent.party,
@@ -108,7 +124,10 @@ export class BattleScene extends Phaser.Scene {
       moveIndex
     );
 
-    this.playerPokemonIndex = 0;
+    this.playerPokemonIndex = Math.max(
+      0,
+      this.playerTrainer.party.findIndex((pokemon) => pokemon.hp > 0)
+    );
     this.opponentPokemonIndex = 0;
     this.playerPokemon = this.playerTrainer.party[this.playerPokemonIndex];
     this.opponentPokemon = this.opponentTrainer.party[this.opponentPokemonIndex];
@@ -669,6 +688,15 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
     this.clearMoveButtons();
+
+    if (this.playerTrainer) {
+      setPlayerPartyCondition(
+        this.playerTrainer.party.map((pokemon) => ({
+          hpRatio: pokemon.maxHp > 0 ? pokemon.hp / pokemon.maxHp : 0,
+          status: pokemon.status,
+        }))
+      );
+    }
 
     let rewardMessage = '';
     if (

@@ -96,9 +96,9 @@ Done when: collisions come from the tilemap, not hard-coded rectangles.
 Done when: you can trigger battles by walking into a trainer’s sightline.
 
 ### 3.3 Add world “comfort” interactions
-- [ ] Add a healing point (simple interactable tile/object):
-  - [ ] restores player party HP
-  - [ ] shows “Your team is fully healed!”
+- [x] Add a healing point (simple interactable tile/object). (commit in this commit)
+  - [x] restores player party HP. (commit in this commit)
+  - [x] shows “Your team is fully healed!”. (commit in this commit)
 - [ ] Add basic signposts/dialogue bubbles (static text is fine).
 
 Done when: the world has at least 2 interactive non-battle objects.
