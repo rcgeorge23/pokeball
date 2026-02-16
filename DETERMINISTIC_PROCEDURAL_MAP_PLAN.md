@@ -34,13 +34,13 @@ Done when: reloading recreates the exact same world from the saved seed.
 ## Milestone 2: Tilemap generation pipeline (replace authored map with generated map)
 
 ### 2.1 Define generated map data model
-- [ ] Introduce `GeneratedMap` structure:
-  - [ ] `width`, `height` (in tiles)
-  - [ ] `tiles: TileId[]` or 2D array
-  - [ ] `collision: boolean[]` or collision layer info
-  - [ ] `spawnPoints` (player start, trainers, heal point, signs)
-  - [ ] `metadata` (biome ids, zones, difficulty bands)
-- [ ] Decide tile scale and map size targets (e.g. 128x128 tiles).
+- [x] Introduce `GeneratedMap` structure: (this commit)
+  - [x] `width`, `height` (in tiles) (this commit)
+  - [x] `tiles: TileId[]` or 2D array (this commit)
+  - [x] `collision: boolean[]` or collision layer info (this commit)
+  - [x] `spawnPoints` (player start, trainers, heal point, signs) (this commit)
+  - [x] `metadata` (biome ids, zones, difficulty bands) (this commit)
+- [x] Decide tile scale and map size targets (e.g. 128x128 tiles). (this commit: default 128x128 tiles)
 
 Done when: map generation produces a complete in-memory representation.
 
