@@ -39,6 +39,8 @@ export class BattleScene extends Phaser.Scene {
   private static readonly ATTACK_LUNGE_DISTANCE = 26;
   private static readonly ATTACK_LUNGE_DURATION_MS = 90;
   private static readonly HIT_FLASH_DURATION_MS = 80;
+  private static readonly HIT_SHAKE_OFFSET = 8;
+  private static readonly HIT_SHAKE_DURATION_MS = 42;
 
   private playerTrainer?: TrainerState;
   private opponentTrainer?: TrainerState;
@@ -439,6 +441,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     defenderSprite.setTintFill(0xffffff);
+    const defenderBaseX = defenderSprite.x;
     this.tweens.add({
       targets: defenderSprite,
       alpha: 0.35,
@@ -449,6 +452,18 @@ export class BattleScene extends Phaser.Scene {
       onComplete: () => {
         defenderSprite.clearTint();
         defenderSprite.setAlpha(1);
+      },
+    });
+
+    this.tweens.add({
+      targets: defenderSprite,
+      x: defenderBaseX + BattleScene.HIT_SHAKE_OFFSET,
+      duration: BattleScene.HIT_SHAKE_DURATION_MS,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        defenderSprite.setX(defenderBaseX);
       },
     });
   }
