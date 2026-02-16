@@ -77,7 +77,7 @@ Done when: at least one status exists end-to-end and is readable.
 
 ### 3.1 Move from rectangles to a tilemap world
 - [x] Add a basic Tiled map (single “town route” layout). (commit pending)
-- [ ] Load tilemap JSON + tileset in PreloadScene.
+- [x] Load tilemap JSON + tileset in PreloadScene. (commit 12b96c8)
 - [ ] Replace manual obstacles with tile collision layer.
 - [ ] Prefer “collision from collision data” / collision group approach.
 - [ ] Ensure camera bounds match map bounds.
