@@ -41,12 +41,16 @@ export class WorldScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
-    const worldWidth = width * 2;
-    const worldHeight = height * 2;
+    const tilemap = this.make.tilemap({ key: 'town-route-map' });
+    const mapTileset = tilemap.addTilesetImage('town_tiles', 'town-tiles');
+    if (mapTileset) {
+      tilemap.createLayer('Ground', mapTileset, 0, 0);
+    }
+
+    const worldWidth = Math.max(width * 2, tilemap.widthInPixels);
+    const worldHeight = Math.max(height * 2, tilemap.heightInPixels);
     this.playerState = getPlayerState();
     this.defeatedTrainerIds = new Set(this.playerState.defeatedTrainerIds);
-
-    this.add.rectangle(0, 0, worldWidth, worldHeight, 0x1e293b).setOrigin(0);
 
     const playerStartX = this.playerState.position?.x ?? width / 2;
     const playerStartY = this.playerState.position?.y ?? height / 2;
