@@ -1,4 +1,4 @@
-import { PlayerState } from './player_model';
+import { PlayerState } from './player_model.js';
 
 const STORAGE_KEY = 'pokemon-battler-save';
 
