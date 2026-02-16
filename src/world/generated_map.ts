@@ -80,8 +80,8 @@ export function generateMapFromSeed(
 
   const rng = new SeededRng(seed);
   const tileCount = width * height;
-  const tiles: TileId[] = Array.from({ length: tileCount }, () => 'grass');
-  const collision = Array.from({ length: tileCount }, () => false);
+  const tiles: TileId[] = Array.from({ length: tileCount }, () => 'obstacle');
+  const collision = Array.from({ length: tileCount }, () => true);
 
   const toIndex = (x: number, y: number): number => y * width + x;
 
@@ -103,14 +103,16 @@ export function generateMapFromSeed(
     collision[rightIndex] = true;
   }
 
-  const usedPoints = new Set<string>();
-  const registerPoint = (point: MapPoint): void => {
-    usedPoints.add(`${point.x},${point.y}`);
-  };
-
   const playerStart: MapPoint = {
     x: clamp(Math.floor(width / 2) + rng.nextInt(-3, 3), 1, width - 2),
     y: clamp(Math.floor(height / 2) + rng.nextInt(-3, 3), 1, height - 2),
+  };
+  const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
+  const walkableTileKeys = carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
+
+  const usedPoints = new Set<string>();
+  const registerPoint = (point: MapPoint): void => {
+    usedPoints.add(`${point.x},${point.y}`);
   };
   registerPoint(playerStart);
 
@@ -119,20 +121,20 @@ export function generateMapFromSeed(
     xMax: Math.min(width - 2, playerStart.x + 5),
     yMin: Math.max(1, playerStart.y - 5),
     yMax: Math.min(height - 2, playerStart.y + 5),
-  });
+  }, walkableTileKeys);
   registerPoint(healPoint);
 
   const trainerCount = Math.max(1, options.trainerCount ?? 10);
   const signCount = Math.max(1, options.signCount ?? 4);
 
   const trainers = Array.from({ length: trainerCount }, () => {
-    const trainerPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints);
+    const trainerPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints, undefined, walkableTileKeys);
     registerPoint(trainerPoint);
     return trainerPoint;
   });
 
   const signs = Array.from({ length: signCount }, () => {
-    const signPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints);
+    const signPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints, undefined, walkableTileKeys);
     registerPoint(signPoint);
     return signPoint;
   });
@@ -140,8 +142,6 @@ export function generateMapFromSeed(
   const biomeIds = ['grassland', 'forest', 'rocky', 'lake'];
   const biomeByTile: string[] = [];
   const difficultyBandByTile: DifficultyBand[] = [];
-  const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
-
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = toIndex(x, y);
@@ -181,6 +181,81 @@ export function generateMapFromSeed(
       navigationGraph,
     },
   };
+}
+
+function carveNavigationRoutes(
+  rng: SeededRng,
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): Set<string> {
+  const walkableTileKeys = new Set<string>();
+  const nodesById = new Map(navigationGraph.nodes.map((node) => [node.id, node]));
+
+  const carveTile = (x: number, y: number, thickness: number): void => {
+    for (let offsetY = -thickness; offsetY <= thickness; offsetY += 1) {
+      for (let offsetX = -thickness; offsetX <= thickness; offsetX += 1) {
+        const nextX = clamp(x + offsetX, 1, width - 2);
+        const nextY = clamp(y + offsetY, 1, height - 2);
+        const tileIndex = toIndex(nextX, nextY);
+        tiles[tileIndex] = 'grass';
+        collision[tileIndex] = false;
+        walkableTileKeys.add(`${nextX},${nextY}`);
+      }
+    }
+  };
+
+  const carvePathSegment = (
+    from: MapPoint,
+    to: MapPoint,
+    axis: 'horizontal' | 'vertical',
+    thickness: number
+  ): void => {
+    if (axis === 'horizontal') {
+      const direction = from.x <= to.x ? 1 : -1;
+      for (let x = from.x; x !== to.x + direction; x += direction) {
+        carveTile(x, from.y, thickness);
+      }
+      return;
+    }
+
+    const direction = from.y <= to.y ? 1 : -1;
+    for (let y = from.y; y !== to.y + direction; y += direction) {
+      carveTile(from.x, y, thickness);
+    }
+  };
+
+  for (const node of navigationGraph.nodes) {
+    const clearingRadius = rng.nextFloat() < 0.35 ? 2 : 1;
+    carveTile(node.x, node.y, clearingRadius);
+  }
+
+  for (const edge of navigationGraph.edges) {
+    const fromNode = nodesById.get(edge.fromNodeId);
+    const toNode = nodesById.get(edge.toNodeId);
+
+    if (!fromNode || !toNode) {
+      continue;
+    }
+
+    const thickness = edge.kind === 'main' && rng.nextFloat() > 0.55
+      ? 2
+      : rng.nextFloat() > 0.7
+        ? 1
+        : 0;
+    const horizontalFirst = rng.nextFloat() > 0.5;
+    const bendPoint: MapPoint = horizontalFirst
+      ? { x: toNode.x, y: fromNode.y }
+      : { x: fromNode.x, y: toNode.y };
+
+    carvePathSegment(fromNode, bendPoint, horizontalFirst ? 'horizontal' : 'vertical', thickness);
+    carvePathSegment(bendPoint, toNode, horizontalFirst ? 'vertical' : 'horizontal', thickness);
+  }
+
+  return walkableTileKeys;
 }
 
 function buildNavigationGraph(
@@ -340,7 +415,8 @@ function pickUniqueWalkablePoint(
     xMax: width - 2,
     yMin: 1,
     yMax: height - 2,
-  }
+  },
+  allowedPoints?: Set<string>
 ): MapPoint {
   const maxAttempts = 200;
 
@@ -348,8 +424,29 @@ function pickUniqueWalkablePoint(
     const x = rng.nextInt(bounds.xMin, bounds.xMax);
     const y = rng.nextInt(bounds.yMin, bounds.yMax);
     const key = `${x},${y}`;
-    if (!usedPoints.has(key)) {
+    if (!usedPoints.has(key) && (!allowedPoints || allowedPoints.has(key))) {
       return { x, y };
+    }
+  }
+
+  if (allowedPoints) {
+    for (const key of allowedPoints) {
+      if (usedPoints.has(key)) {
+        continue;
+      }
+
+      const [xAsString, yAsString] = key.split(',');
+      const x = Number(xAsString);
+      const y = Number(yAsString);
+      const withinBounds =
+        x >= bounds.xMin &&
+        x <= bounds.xMax &&
+        y >= bounds.yMin &&
+        y <= bounds.yMax;
+
+      if (withinBounds) {
+        return { x, y };
+      }
     }
   }
 
