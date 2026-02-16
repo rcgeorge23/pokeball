@@ -63,6 +63,7 @@ export class BattleScene extends Phaser.Scene {
   private sfxEnabled = true;
   private opponentTrainerId?: string;
   private opponentAlreadyDefeated = false;
+  private aiDebugLoggingEnabled = false;
   private playerPokemonIndex = 0;
   private opponentPokemonIndex = 0;
 
@@ -72,6 +73,7 @@ export class BattleScene extends Phaser.Scene {
 
   create(data: BattleSceneData): void {
     this.resetBattleState();
+    this.aiDebugLoggingEnabled = this.isAiDebugLoggingEnabled();
 
     this.opponentTrainerId = data.opponent.id;
     this.opponentAlreadyDefeated =
@@ -301,6 +303,7 @@ export class BattleScene extends Phaser.Scene {
       this.opponentPokemon,
       this.playerPokemon
     );
+    this.logAiMoveChoice(opponentMove);
     const firstActor = decideFirstActor(
       this.playerPokemon,
       this.opponentPokemon,
@@ -330,6 +333,33 @@ export class BattleScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  private isAiDebugLoggingEnabled(): boolean {
+    const queryParam = new URLSearchParams(window.location.search).get(
+      'debugAiChoice'
+    );
+    if (queryParam !== null) {
+      const normalizedValue = queryParam.toLowerCase();
+      return (
+        normalizedValue === '1' ||
+        normalizedValue === 'true' ||
+        normalizedValue === 'yes' ||
+        normalizedValue === 'on'
+      );
+    }
+
+    return window.localStorage.getItem('debugAiChoice') === 'true';
+  }
+
+  private logAiMoveChoice(move: BattleMove): void {
+    if (!this.aiDebugLoggingEnabled || !this.opponentPokemon) {
+      return;
+    }
+
+    console.debug(
+      `[Battle AI] ${this.opponentPokemon.name} chose ${move.name} (power=${move.power}, accuracy=${move.accuracy})`
+    );
   }
 
   private resolveAction(

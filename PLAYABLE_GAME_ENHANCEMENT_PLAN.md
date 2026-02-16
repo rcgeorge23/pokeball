@@ -41,7 +41,7 @@ Done when: battles visibly animate and feel responsive.
 ### 1.4 Improve AI (from random to reasonable)
 - [x] Replace random move selection with expected damage maximization (consider accuracy). (PR pending)
 - [x] Add a small randomness factor so AI isn’t perfectly deterministic (e.g. 10% chance pick 2nd best). (commit 8870b6f)
-- [ ] Log AI choice only in debug mode (toggle).
+- [x] Log AI choice only in debug mode (toggle). (commit pending)
 
 Done when: AI uses better moves most of the time.
 
