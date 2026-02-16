@@ -53,7 +53,7 @@ Done when: map generation produces a complete in-memory representation.
 Done when: the world is generated and playable without any authored map.
 
 ### 2.3 Basic QA hooks for debugging
-- [ ] Add a “Regenerate (New Seed)” debug button available only in dev mode.
+- [x] Add a “Regenerate (New Seed)” debug button available only in dev mode. (this commit)
 - [ ] Add a “Copy seed” button (or log seed clearly) for bug reports.
 - [ ] Add a “Show collision” debug toggle (visual overlay optional).
 

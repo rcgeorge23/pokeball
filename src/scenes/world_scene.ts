@@ -9,6 +9,7 @@ import {
   getPlayerState,
   persistPlayerState,
   PlayerState,
+  regenerateWorldSeed,
   updatePlayerPosition,
 } from '../player/player_model';
 import { deriveJoystickDirection } from '../world/joystick_input';
@@ -34,6 +35,7 @@ export class WorldScene extends Phaser.Scene {
   private pokedexPanel?: HTMLElement;
   private pokedexList?: HTMLElement;
   private pokedexCloseButton?: HTMLButtonElement;
+  private regenerateButton?: HTMLButtonElement;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -138,6 +140,10 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.setupPokedexUi();
+
+    if (import.meta.env.DEV) {
+      this.setupDebugRegenerateButton(tileSize);
+    }
   }
 
   update(time: number): void {
@@ -398,6 +404,36 @@ export class WorldScene extends Phaser.Scene {
     this.battleButton.textContent = this.nearbyTrainer
       ? `Battle ${this.nearbyTrainer.definition.name}`
       : 'Battle';
+  }
+
+  private setupDebugRegenerateButton(tileSize: number): void {
+    const regenerateButton = document.getElementById('regenerate-map-button');
+    if (!regenerateButton) {
+      return;
+    }
+
+    this.regenerateButton = regenerateButton as HTMLButtonElement;
+    this.regenerateButton.style.display = 'inline-flex';
+
+    const onRegenerate = () => {
+      const nextSeed = regenerateWorldSeed();
+      const regeneratedMap = generateMapFromSeed(nextSeed);
+      const spawnX = regeneratedMap.spawnPoints.playerStart.x * tileSize + tileSize / 2;
+      const spawnY = regeneratedMap.spawnPoints.playerStart.y * tileSize + tileSize / 2;
+      updatePlayerPosition(spawnX, spawnY);
+      persistPlayerState();
+      this.scene.restart();
+    };
+
+    this.regenerateButton.addEventListener('click', onRegenerate);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.regenerateButton?.removeEventListener('click', onRegenerate);
+      if (this.regenerateButton) {
+        this.regenerateButton.style.display = 'none';
+      }
+      this.regenerateButton = undefined;
+    });
   }
 
   private startNearbyBattle(): void {
