@@ -44,6 +44,24 @@ export interface TrainerState {
 
 export type TurnOrder = 'a' | 'b';
 
+export type TypeEffectivenessChart = Record<string, Record<string, number>>;
+
+export const TYPE_EFFECTIVENESS_CHART: TypeEffectivenessChart = {
+  Fire: {
+    Grass: 2,
+    Fire: 0.5,
+  },
+  Grass: {
+    Fire: 0.5,
+    Electric: 0.5,
+  },
+  Electric: {
+    Grass: 0.5,
+    Electric: 0.5,
+  },
+  Normal: {},
+};
+
 export function buildIndex<T extends { id: string }>(items: T[]): Record<string, T> {
   return items.reduce<Record<string, T>>((acc, item) => {
     acc[item.id] = item;
@@ -147,6 +165,21 @@ export function calculateExpectedDamage(
   move: BattleMove
 ): number {
   return calculateDamage(attacker, defender, move) * move.accuracy;
+}
+
+export function getTypeEffectivenessMultiplier(
+  moveType: string,
+  defenderTypes: string[],
+  typeChart: TypeEffectivenessChart = TYPE_EFFECTIVENESS_CHART
+): number {
+  return defenderTypes.reduce((multiplier, defenderType) => {
+    const attackingTypeRules = typeChart[moveType];
+    if (!attackingTypeRules) {
+      return multiplier;
+    }
+
+    return multiplier * (attackingTypeRules[defenderType] ?? 1);
+  }, 1);
 }
 
 export function pickBestMoveByExpectedDamage(

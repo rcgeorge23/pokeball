@@ -5,6 +5,7 @@ import {
   calculateDamage,
   calculateExpectedDamage,
   doesMoveHit,
+  getTypeEffectivenessMultiplier,
   isCriticalHit,
   pickBestMoveByExpectedDamage,
   PokemonInstance,
@@ -138,4 +139,12 @@ test('pickBestMoveByExpectedDamage can pick second-best move for variety', () =>
   const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender, () => 0.05);
 
   assert.equal(selectedMove.id, 'heavy-slam');
+});
+
+test('getTypeEffectivenessMultiplier uses Fire/Grass/Electric/Normal chart rules', () => {
+  assert.equal(getTypeEffectivenessMultiplier('Fire', ['Grass']), 2);
+  assert.equal(getTypeEffectivenessMultiplier('Fire', ['Fire']), 0.5);
+  assert.equal(getTypeEffectivenessMultiplier('Electric', ['Grass']), 0.5);
+  assert.equal(getTypeEffectivenessMultiplier('Normal', ['Fire']), 1);
+  assert.equal(getTypeEffectivenessMultiplier('Unknown', ['Grass']), 1);
 });
