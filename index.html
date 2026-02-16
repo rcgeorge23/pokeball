@@ -102,6 +102,23 @@
         box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5);
       }
 
+      #toggle-collision-button {
+        position: fixed;
+        right: 24px;
+        top: 172px;
+        z-index: 10;
+        display: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: #c084fc;
+        color: #2e1065;
+        font-size: 13px;
+        font-weight: 700;
+        touch-action: manipulation;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.5);
+      }
+
       #pokedex-panel {
         position: fixed;
         inset: 0;
@@ -147,6 +164,7 @@
     <button id="pokedex-open-button" type="button">Open Pokédex</button>
     <button id="regenerate-map-button" type="button">Regenerate (New Seed)</button>
     <button id="copy-seed-button" type="button">Copy Seed</button>
+    <button id="toggle-collision-button" type="button">Show Collision</button>
     <section id="pokedex-panel" aria-hidden="true">
       <h2>Pokédex</h2>
       <ul id="pokedex-list"></ul>

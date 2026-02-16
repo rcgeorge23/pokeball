@@ -37,6 +37,7 @@ export class WorldScene extends Phaser.Scene {
   private pokedexCloseButton?: HTMLButtonElement;
   private regenerateButton?: HTMLButtonElement;
   private copySeedButton?: HTMLButtonElement;
+  private toggleCollisionButton?: HTMLButtonElement;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -145,6 +146,7 @@ export class WorldScene extends Phaser.Scene {
     if (import.meta.env.DEV) {
       this.setupDebugRegenerateButton(tileSize);
       this.setupDebugCopySeedButton();
+      this.setupDebugCollisionToggle(collisionLayer);
     }
   }
 
@@ -435,6 +437,50 @@ export class WorldScene extends Phaser.Scene {
         this.regenerateButton.style.display = 'none';
       }
       this.regenerateButton = undefined;
+    });
+  }
+
+
+  private setupDebugCollisionToggle(collisionLayer: Phaser.Tilemaps.TilemapLayer): void {
+    const toggleCollisionButton = document.getElementById('toggle-collision-button');
+    if (!toggleCollisionButton) {
+      return;
+    }
+
+    this.toggleCollisionButton = toggleCollisionButton as HTMLButtonElement;
+    this.toggleCollisionButton.style.display = 'inline-flex';
+
+    const setCollisionVisibility = (isVisible: boolean) => {
+      collisionLayer.setVisible(isVisible);
+      collisionLayer.setAlpha(isVisible ? 0.65 : 1);
+
+      if (this.toggleCollisionButton) {
+        this.toggleCollisionButton.textContent = isVisible
+          ? 'Hide Collision'
+          : 'Show Collision';
+      }
+    };
+
+    let isCollisionVisible = false;
+    setCollisionVisibility(isCollisionVisible);
+
+    const onToggleCollision = () => {
+      isCollisionVisible = !isCollisionVisible;
+      setCollisionVisibility(isCollisionVisible);
+    };
+
+    this.toggleCollisionButton.addEventListener('click', onToggleCollision);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.toggleCollisionButton?.removeEventListener('click', onToggleCollision);
+      if (this.toggleCollisionButton) {
+        this.toggleCollisionButton.style.display = 'none';
+        this.toggleCollisionButton.textContent = 'Show Collision';
+      }
+
+      collisionLayer.setVisible(false);
+      collisionLayer.setAlpha(1);
+      this.toggleCollisionButton = undefined;
     });
   }
 

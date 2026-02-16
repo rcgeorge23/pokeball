@@ -55,7 +55,7 @@ Done when: the world is generated and playable without any authored map.
 ### 2.3 Basic QA hooks for debugging
 - [x] Add a “Regenerate (New Seed)” debug button available only in dev mode. (this commit)
 - [x] Add a “Copy seed” button (or log seed clearly) for bug reports. (this commit)
-- [ ] Add a “Show collision” debug toggle (visual overlay optional).
+- [x] Add a “Show collision” debug toggle (visual overlay optional). (this commit)
 
 Done when: you can iterate on generation quickly and reproduce bugs via seed.
 
