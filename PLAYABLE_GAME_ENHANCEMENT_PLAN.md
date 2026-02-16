@@ -50,7 +50,7 @@ Done when: AI uses better moves most of the time.
 ## Milestone 2: Depth without complexity explosion (types + statuses “lite”)
 
 ### 2.1 Add a minimal type system (3–4 types)
-- [ ] Extend Pokémon definitions with types: string[] (start with 1 type each).
+- [x] Extend Pokémon definitions with types: string[] (start with 1 type each). (commit f85350c)
 - [ ] Extend move definitions with type: string.
 - [ ] Add a small type chart (start with Fire/Grass/Electric/Normal).
 - [ ] Apply type multiplier to damage and log:
