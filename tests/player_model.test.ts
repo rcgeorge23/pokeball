@@ -4,9 +4,12 @@ import assert from 'node:assert/strict';
 import {
   CURRENT_WORLD_VERSION,
   generateWorldSeed,
+  getPlayerPartyCondition,
   getPlayerState,
+  healPlayerParty,
   hydratePlayerState,
   regenerateWorldSeed,
+  setPlayerPartyCondition,
 } from '../src/player/player_model.js';
 
 test('generateWorldSeed returns a prefixed non-empty seed', () => {
@@ -48,6 +51,7 @@ test('hydratePlayerState backfills world metadata for legacy saves', () => {
 
   assert.equal(state.worldVersion, CURRENT_WORLD_VERSION);
   assert.ok(state.worldSeed.startsWith('world-'));
+  assert.deepEqual(state.partyCondition, [{ hpRatio: 1 }]);
 });
 
 
@@ -59,4 +63,20 @@ test('regenerateWorldSeed updates the current state with a new seed', () => {
   assert.equal(getPlayerState().worldSeed, nextSeed);
   assert.equal(getPlayerState().worldVersion, CURRENT_WORLD_VERSION);
   assert.ok(nextSeed !== initialSeed);
+});
+
+test('setPlayerPartyCondition persists and healPlayerParty restores full HP and status', () => {
+  setPlayerPartyCondition([
+    { hpRatio: 0.4, status: 'burn' },
+    { hpRatio: 0.05, status: 'poison' },
+  ]);
+
+  assert.deepEqual(getPlayerPartyCondition(), [
+    { hpRatio: 0.4, status: 'burn' },
+    { hpRatio: 0.05, status: 'poison' },
+  ]);
+
+  healPlayerParty();
+
+  assert.deepEqual(getPlayerPartyCondition(), [{ hpRatio: 1 }, { hpRatio: 1 }]);
 });

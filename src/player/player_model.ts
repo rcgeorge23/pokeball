@@ -2,6 +2,13 @@ import { loadPlayerState, savePlayerState } from './persistence.js';
 
 export const CURRENT_WORLD_VERSION = 1;
 
+export type PersistedStatusCondition = 'burn' | 'poison' | 'paralyze';
+
+export interface PartyCondition {
+  hpRatio: number;
+  status?: PersistedStatusCondition;
+}
+
 export interface PlayerState {
   name: string;
   party: string[];
@@ -13,6 +20,7 @@ export interface PlayerState {
   defeatedTrainerIds: string[];
   worldSeed: string;
   worldVersion: number;
+  partyCondition: PartyCondition[];
 }
 
 let fallbackSeedCounter = 0;
@@ -31,10 +39,11 @@ export function generateWorldSeed(): string {
 }
 
 function createInitialState(): PlayerState {
+  const party = ['emberfox', 'leafling'];
   return {
     name: 'You',
-    party: ['emberfox', 'leafling'],
-    pokedex: ['emberfox', 'leafling'],
+    party,
+    pokedex: [...party],
     position: {
       x: 400,
       y: 300,
@@ -42,6 +51,7 @@ function createInitialState(): PlayerState {
     defeatedTrainerIds: [],
     worldSeed: generateWorldSeed(),
     worldVersion: CURRENT_WORLD_VERSION,
+    partyCondition: party.map(() => ({ hpRatio: 1 })),
   };
 }
 
@@ -52,6 +62,31 @@ function sanitizeStringArray(value: unknown, fallback: string[]): string[] {
 
   const filtered = value.filter((entry): entry is string => typeof entry === 'string');
   return filtered.length > 0 ? filtered : fallback;
+}
+
+function sanitizePartyCondition(
+  value: unknown,
+  partyLength: number
+): PartyCondition[] {
+  if (!Array.isArray(value)) {
+    return Array.from({ length: partyLength }, () => ({ hpRatio: 1 }));
+  }
+
+  return Array.from({ length: partyLength }, (_, index) => {
+    const candidate = value[index] as Partial<PartyCondition> | undefined;
+    const hpRatio =
+      typeof candidate?.hpRatio === 'number'
+        ? Math.max(0, Math.min(1, candidate.hpRatio))
+        : 1;
+    const status =
+      candidate?.status === 'burn' ||
+      candidate?.status === 'poison' ||
+      candidate?.status === 'paralyze'
+        ? candidate.status
+        : undefined;
+
+    return status ? { hpRatio, status } : { hpRatio };
+  });
 }
 
 export function hydratePlayerState(saved: Partial<PlayerState> | null): PlayerState {
@@ -77,6 +112,10 @@ export function hydratePlayerState(saved: Partial<PlayerState> | null): PlayerSt
     defeatedTrainerIds: sanitizeStringArray(saved.defeatedTrainerIds, initialState.defeatedTrainerIds),
     worldSeed,
     worldVersion,
+    partyCondition: sanitizePartyCondition(
+      saved.partyCondition,
+      sanitizeStringArray(saved.party, initialState.party).length
+    ),
   };
 }
 
@@ -134,6 +173,28 @@ export function updatePlayerPosition(x: number, y: number): void {
 }
 
 export function persistPlayerState(): void {
+  savePlayerState(currentState);
+}
+
+export function getPlayerPartyCondition(): PartyCondition[] {
+  return currentState.partyCondition.map((condition) => ({ ...condition }));
+}
+
+export function setPlayerPartyCondition(
+  partyCondition: PartyCondition[]
+): void {
+  currentState = {
+    ...currentState,
+    partyCondition: sanitizePartyCondition(partyCondition, currentState.party.length),
+  };
+  savePlayerState(currentState);
+}
+
+export function healPlayerParty(): void {
+  currentState = {
+    ...currentState,
+    partyCondition: currentState.party.map(() => ({ hpRatio: 1 })),
+  };
   savePlayerState(currentState);
 }
 

@@ -7,6 +7,7 @@ import {
 } from '../world/npc_controller';
 import {
   getPlayerState,
+  healPlayerParty,
   persistPlayerState,
   PlayerState,
   regenerateWorldSeed,
@@ -42,6 +43,9 @@ export class WorldScene extends Phaser.Scene {
   private regenerateButton?: HTMLButtonElement;
   private copySeedButton?: HTMLButtonElement;
   private toggleCollisionButton?: HTMLButtonElement;
+  private healPointWorldPosition?: Phaser.Math.Vector2;
+  private worldMessage = '';
+  private worldMessageUntil = 0;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -63,6 +67,11 @@ export class WorldScene extends Phaser.Scene {
 
     const generatedSpawnX = generatedMap.spawnPoints.playerStart.x * tileSize + tileSize / 2;
     const generatedSpawnY = generatedMap.spawnPoints.playerStart.y * tileSize + tileSize / 2;
+    this.healPointWorldPosition = new Phaser.Math.Vector2(
+      generatedMap.spawnPoints.healPoint.x * tileSize + tileSize / 2,
+      generatedMap.spawnPoints.healPoint.y * tileSize + tileSize / 2
+    );
+    this.renderHealPointMarker(this.healPointWorldPosition);
 
     const playerStartX = this.playerState.position?.x ?? generatedSpawnX;
     const playerStartY = this.playerState.position?.y ?? generatedSpawnY;
@@ -211,6 +220,7 @@ export class WorldScene extends Phaser.Scene {
     this.maybeStartLineOfSightEncounter();
 
     if (this.hintText) {
+      const nearHealPoint = this.isPlayerNearHealPoint();
       if (
         this.spottingTrainer &&
         !this.defeatedTrainerIds.has(this.spottingTrainer.definition.id)
@@ -225,6 +235,10 @@ export class WorldScene extends Phaser.Scene {
             ? `${this.nearbyTrainer.definition.name} is defeated. Press E to rematch.`
             : `Press E to battle ${this.nearbyTrainer.definition.name}`
         );
+      } else if (nearHealPoint) {
+        this.hintText.setText('Press E to heal your team');
+      } else if (this.worldMessageUntil > time) {
+        this.hintText.setText(this.worldMessage);
       } else {
         this.hintText.setText('');
       }
@@ -233,7 +247,11 @@ export class WorldScene extends Phaser.Scene {
     this.updateBattleButton();
 
     if (!this.lineOfSightSequenceActive && this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-      this.startNearbyBattle();
+      if (this.nearbyTrainer) {
+        this.startNearbyBattle();
+      } else {
+        this.tryHealPlayerParty(time);
+      }
     }
 
     if (time - this.lastSaveTime > 1500) {
@@ -241,6 +259,45 @@ export class WorldScene extends Phaser.Scene {
       persistPlayerState();
       this.lastSaveTime = time;
     }
+  }
+
+  private renderHealPointMarker(position: Phaser.Math.Vector2): void {
+    const marker = this.add.circle(position.x, position.y, this.tileSize * 0.35, 0x38bdf8, 0.9);
+    marker.setDepth(1);
+
+    this.tweens.add({
+      targets: marker,
+      alpha: 0.45,
+      scale: 1.12,
+      duration: 720,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private isPlayerNearHealPoint(): boolean {
+    if (!this.player || !this.healPointWorldPosition) {
+      return false;
+    }
+
+    return Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      this.healPointWorldPosition.x,
+      this.healPointWorldPosition.y
+    ) <= this.tileSize * 1.15;
+  }
+
+  private tryHealPlayerParty(currentTime: number): void {
+    if (!this.isPlayerNearHealPoint()) {
+      return;
+    }
+
+    healPlayerParty();
+    this.worldMessage = 'Your team is fully healed!';
+    this.worldMessageUntil = currentTime + 2200;
+    this.hintText?.setText(this.worldMessage);
   }
 
 
