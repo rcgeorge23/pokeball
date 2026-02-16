@@ -27,7 +27,11 @@
     "name": "Spark",
     "type": "Electric",
     "power": 15,
-    "accuracy": 0.9
+    "accuracy": 0.9,
+    "statusInflict": {
+      "condition": "paralyze",
+      "chance": 0.3
+    }
   },
   {
     "id": "venom_jab",
