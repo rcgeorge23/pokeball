@@ -100,7 +100,35 @@ test('pickBestMoveByExpectedDamage selects highest expected damage move', () => 
     ],
   };
 
-  const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender);
+  const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender, () => 0.5);
 
   assert.equal(selectedMove.id, 'steady-hit');
+});
+
+test('pickBestMoveByExpectedDamage can pick second-best move for variety', () => {
+  const aiPokemon: PokemonInstance = {
+    ...attacker,
+    moves: [
+      {
+        id: 'heavy-slam',
+        name: 'Heavy Slam',
+        power: 18,
+        accuracy: 0.5,
+        critChance: 0.1,
+        critMultiplier: 1.5,
+      },
+      {
+        id: 'steady-hit',
+        name: 'Steady Hit',
+        power: 13,
+        accuracy: 0.9,
+        critChance: 0.1,
+        critMultiplier: 1.5,
+      },
+    ],
+  };
+
+  const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender, () => 0.05);
+
+  assert.equal(selectedMove.id, 'heavy-slam');
 });

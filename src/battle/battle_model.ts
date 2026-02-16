@@ -147,28 +147,28 @@ export function calculateExpectedDamage(
 
 export function pickBestMoveByExpectedDamage(
   attacker: PokemonInstance,
-  defender: PokemonInstance
+  defender: PokemonInstance,
+  rng: () => number = Math.random,
+  secondBestChance = 0.1
 ): BattleMove {
   if (attacker.moves.length === 0) {
     throw new Error(`${attacker.name} has no moves to choose from.`);
   }
 
-  return attacker.moves.reduce((bestMove, candidateMove) => {
-    const bestExpectedDamage = calculateExpectedDamage(
-      attacker,
-      defender,
-      bestMove
-    );
-    const candidateExpectedDamage = calculateExpectedDamage(
-      attacker,
-      defender,
-      candidateMove
-    );
+  if (attacker.moves.length === 1) {
+    return attacker.moves[0];
+  }
 
-    if (candidateExpectedDamage > bestExpectedDamage) {
-      return candidateMove;
-    }
-
-    return bestMove;
+  const rankedMoves = [...attacker.moves].sort((moveA, moveB) => {
+    const expectedDamageA = calculateExpectedDamage(attacker, defender, moveA);
+    const expectedDamageB = calculateExpectedDamage(attacker, defender, moveB);
+    return expectedDamageB - expectedDamageA;
   });
+
+  const clampedSecondBestChance = Math.min(1, Math.max(0, secondBestChance));
+  if (rng() < clampedSecondBestChance) {
+    return rankedMoves[1];
+  }
+
+  return rankedMoves[0];
 }

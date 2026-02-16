@@ -13,7 +13,7 @@ This plan upgrades the current prototype into a more enjoyable, replayable, “g
 ## Milestone 1: Battles feel fun (juice + strategy)
 
 ### 1.1 Turn order & turn clarity
-- [x] Implement speed-based turn order (higher speed acts first; ties random). (commit b3947e8)
+- [x] Implement speed-based turn order (higher speed acts first; ties random). (commit 8870b6f)
 - [x] Display a clear “Turn order” log line: Leafling moves first! (commit b3947e8)
 - [x] Add a per-turn state lock so input cannot be spammed during resolution. (commit b3947e8)
 
@@ -40,7 +40,7 @@ Done when: battles visibly animate and feel responsive.
 
 ### 1.4 Improve AI (from random to reasonable)
 - [x] Replace random move selection with expected damage maximization (consider accuracy). (PR pending)
-- [ ] Add a small randomness factor so AI isn’t perfectly deterministic (e.g. 10% chance pick 2nd best).
+- [x] Add a small randomness factor so AI isn’t perfectly deterministic (e.g. 10% chance pick 2nd best). (commit 8870b6f)
 - [ ] Log AI choice only in debug mode (toggle).
 
 Done when: AI uses better moves most of the time.
