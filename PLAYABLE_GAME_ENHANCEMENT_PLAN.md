@@ -80,7 +80,7 @@ Done when: at least one status exists end-to-end and is readable.
 - [x] Load tilemap JSON + tileset in PreloadScene. (commit 12b96c8)
 - [x] Replace manual obstacles with tile collision layer. (commit d5b6688)
 - [x] Prefer “collision from collision data” / collision group approach. (commit in this commit)
-- [ ] Ensure camera bounds match map bounds.
+- [x] Ensure camera bounds match map bounds. (commit in this commit)
 
 Done when: collisions come from the tilemap, not hard-coded rectangles.
 
