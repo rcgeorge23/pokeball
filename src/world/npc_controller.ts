@@ -40,6 +40,7 @@ class TrainerActor {
   private nextMoveTime = 0;
   private currentVelocity = new Phaser.Math.Vector2(0, 0);
   private defeated = false;
+  private scriptedLock = false;
 
   constructor(public readonly instance: TrainerInstance) {}
 
@@ -58,7 +59,24 @@ class TrainerActor {
     }
   }
 
+  setScriptedLock(locked: boolean): void {
+    this.scriptedLock = locked;
+    if (locked) {
+      this.instance.sprite.setVelocity(0, 0);
+    }
+  }
+
+  isDefeated(): boolean {
+    return this.defeated;
+  }
+
   update(time: number): void {
+    if (this.scriptedLock) {
+      this.instance.sprite.setVelocity(0, 0);
+      this.updateLabelPosition();
+      return;
+    }
+
     if (this.defeated) {
       this.instance.sprite.setVelocity(0, 0);
       this.updateLabelPosition();
@@ -109,6 +127,18 @@ class TrainerActor {
 
 export class NpcController {
   private trainers: TrainerActor[] = [];
+  private activeApproaches = new Map<
+    string,
+    {
+      actor: TrainerActor;
+      target: Phaser.Types.Math.Vector2Like;
+      speed: number;
+      stopDistance: number;
+      startedAt: number;
+      maxDurationMs: number;
+      onComplete?: () => void;
+    }
+  >();
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -147,6 +177,7 @@ export class NpcController {
 
   update(time: number): void {
     this.trainers.forEach((trainer) => trainer.update(time));
+    this.updateApproaches(time);
   }
 
   getInstances(): TrainerInstance[] {
@@ -158,6 +189,43 @@ export class NpcController {
     this.trainers.forEach((trainer) => {
       trainer.setDefeated(defeatedSet.has(trainer.instance.definition.id));
     });
+  }
+
+  getTrainerById(trainerId: string): TrainerInstance | null {
+    const trainer = this.getTrainerActorById(trainerId);
+    return trainer?.instance ?? null;
+  }
+
+  startApproach(
+    trainerId: string,
+    target: Phaser.Types.Math.Vector2Like,
+    options?: {
+      speed?: number;
+      stopDistance?: number;
+      maxDurationMs?: number;
+      onComplete?: () => void;
+    }
+  ): boolean {
+    const actor = this.getTrainerActorById(trainerId);
+    if (!actor || actor.isDefeated()) {
+      return false;
+    }
+
+    const speed = options?.speed ?? 120;
+    const stopDistance = options?.stopDistance ?? 56;
+    const maxDurationMs = options?.maxDurationMs ?? 2800;
+    actor.setScriptedLock(true);
+
+    this.activeApproaches.set(trainerId, {
+      actor,
+      target,
+      speed,
+      stopDistance,
+      startedAt: this.scene.time.now,
+      maxDurationMs,
+      onComplete: options?.onComplete,
+    });
+    return true;
   }
 
   getFacingVector(trainerId: string): Phaser.Math.Vector2 | null {
@@ -221,12 +289,48 @@ export class NpcController {
         sightOptions
       );
 
-      if (canSeePlayer) {
+      if (canSeePlayer && !trainer.isDefeated()) {
         return trainer.instance;
       }
     }
 
     return null;
+  }
+
+  private updateApproaches(time: number): void {
+    for (const [trainerId, approach] of this.activeApproaches.entries()) {
+      const trainerSprite = approach.actor.instance.sprite;
+      const distanceToTarget = Phaser.Math.Distance.Between(
+        trainerSprite.x,
+        trainerSprite.y,
+        approach.target.x,
+        approach.target.y
+      );
+
+      const didTimeout = time - approach.startedAt >= approach.maxDurationMs;
+      if (distanceToTarget <= approach.stopDistance || didTimeout) {
+        trainerSprite.setVelocity(0, 0);
+        approach.actor.setScriptedLock(false);
+        this.activeApproaches.delete(trainerId);
+        approach.onComplete?.();
+        continue;
+      }
+
+      this.scene.physics.moveTo(
+        trainerSprite,
+        approach.target.x,
+        approach.target.y,
+        approach.speed
+      );
+    }
+  }
+
+  private getTrainerActorById(trainerId: string): TrainerActor | null {
+    return (
+      this.trainers.find(
+        (actor) => actor.instance.definition.id === trainerId
+      ) ?? null
+    );
   }
 }
 
