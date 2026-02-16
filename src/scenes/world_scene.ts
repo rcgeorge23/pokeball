@@ -43,8 +43,12 @@ export class WorldScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const tilemap = this.make.tilemap({ key: 'town-route-map' });
     const mapTileset = tilemap.addTilesetImage('town_tiles', 'town-tiles');
+    let collisionLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     if (mapTileset) {
       tilemap.createLayer('Ground', mapTileset, 0, 0);
+      collisionLayer = tilemap.createLayer('Collision', mapTileset, 0, 0);
+      collisionLayer?.setVisible(false);
+      collisionLayer?.setCollisionByExclusion([-1]);
     }
 
     const worldWidth = Math.max(width * 2, tilemap.widthInPixels);
@@ -63,20 +67,9 @@ export class WorldScene extends Phaser.Scene {
     this.player.setScale(4);
     this.player.setCollideWorldBounds(true);
 
-    const walls = this.physics.add.staticGroup();
-    const wallSpecs = [
-      { x: worldWidth / 2, y: 140, w: 420, h: 36 },
-      { x: worldWidth - 200, y: worldHeight / 2, w: 36, h: 360 },
-      { x: 220, y: worldHeight - 160, w: 320, h: 36 },
-    ];
-
-    wallSpecs.forEach(({ x, y, w, h }) => {
-      const wall = this.add.rectangle(x, y, w, h, 0x334155);
-      this.physics.add.existing(wall, true);
-      walls.add(wall);
-    });
-
-    this.physics.add.collider(this.player, walls);
+    if (collisionLayer) {
+      this.physics.add.collider(this.player, collisionLayer);
+    }
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -101,7 +94,11 @@ export class WorldScene extends Phaser.Scene {
     this.npcController.setDefeatedTrainerIds(this.playerState.defeatedTrainerIds);
 
     this.npcController.getInstances().forEach((trainer) => {
-      this.physics.add.collider(trainer.sprite, walls);
+      if (!collisionLayer) {
+        return;
+      }
+
+      this.physics.add.collider(trainer.sprite, collisionLayer);
     });
 
     this.add

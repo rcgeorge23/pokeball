@@ -76,9 +76,9 @@ Done when: at least one status exists end-to-end and is readable.
 ## Milestone 3: The world feels like a real place (tilemap + trainer behaviors)
 
 ### 3.1 Move from rectangles to a tilemap world
-- [x] Add a basic Tiled map (single “town route” layout). (commit pending)
+- [x] Add a basic Tiled map (single “town route” layout). (commit e438747)
 - [x] Load tilemap JSON + tileset in PreloadScene. (commit 12b96c8)
-- [ ] Replace manual obstacles with tile collision layer.
+- [x] Replace manual obstacles with tile collision layer. (commit d5b6688)
 - [ ] Prefer “collision from collision data” / collision group approach.
 - [ ] Ensure camera bounds match map bounds.
 
