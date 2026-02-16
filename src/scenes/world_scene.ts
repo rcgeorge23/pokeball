@@ -36,6 +36,7 @@ export class WorldScene extends Phaser.Scene {
   private pokedexList?: HTMLElement;
   private pokedexCloseButton?: HTMLButtonElement;
   private regenerateButton?: HTMLButtonElement;
+  private copySeedButton?: HTMLButtonElement;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -143,6 +144,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (import.meta.env.DEV) {
       this.setupDebugRegenerateButton(tileSize);
+      this.setupDebugCopySeedButton();
     }
   }
 
@@ -433,6 +435,63 @@ export class WorldScene extends Phaser.Scene {
         this.regenerateButton.style.display = 'none';
       }
       this.regenerateButton = undefined;
+    });
+  }
+
+  private setupDebugCopySeedButton(): void {
+    const copySeedButton = document.getElementById('copy-seed-button');
+    if (!copySeedButton) {
+      return;
+    }
+
+    this.copySeedButton = copySeedButton as HTMLButtonElement;
+    this.copySeedButton.style.display = 'inline-flex';
+
+    const defaultLabel = 'Copy Seed';
+    const flashLabel = (label: string) => {
+      if (!this.copySeedButton) {
+        return;
+      }
+
+      this.copySeedButton.textContent = label;
+      window.setTimeout(() => {
+        if (this.copySeedButton) {
+          this.copySeedButton.textContent = defaultLabel;
+        }
+      }, 1200);
+    };
+
+    const onCopySeed = async () => {
+      const seed = this.playerState.worldSeed;
+
+      if (!navigator.clipboard?.writeText) {
+        console.info(`World seed: ${seed}`);
+        flashLabel('Seed logged');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(seed);
+        flashLabel('Copied!');
+      } catch {
+        console.info(`World seed: ${seed}`);
+        flashLabel('Seed logged');
+      }
+    };
+
+    const onCopySeedClick = () => {
+      void onCopySeed();
+    };
+
+    this.copySeedButton.addEventListener('click', onCopySeedClick);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.copySeedButton?.removeEventListener('click', onCopySeedClick);
+      if (this.copySeedButton) {
+        this.copySeedButton.style.display = 'none';
+        this.copySeedButton.textContent = defaultLabel;
+      }
+      this.copySeedButton = undefined;
     });
   }
 
