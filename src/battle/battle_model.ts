@@ -6,12 +6,21 @@ export interface MoveDefinition {
   accuracy?: number;
   critChance?: number;
   critMultiplier?: number;
+  statusInflict?: StatusInflictDefinition;
+}
+
+export type StatusCondition = 'burn';
+
+export interface StatusInflictDefinition {
+  condition: StatusCondition;
+  chance?: number;
 }
 
 export interface BattleMove extends MoveDefinition {
   accuracy: number;
   critChance: number;
   critMultiplier: number;
+  statusInflict?: Required<StatusInflictDefinition>;
 }
 
 export interface PokemonDefinition {
@@ -35,6 +44,7 @@ export interface PokemonInstance {
   defense: number;
   speed: number;
   moves: BattleMove[];
+  status?: StatusCondition;
 }
 
 export interface TrainerState {
@@ -89,6 +99,12 @@ export function createPokemonInstance(
       accuracy: move.accuracy ?? 1,
       critChance: move.critChance ?? 0.1,
       critMultiplier: move.critMultiplier ?? 1.5,
+      statusInflict: move.statusInflict
+        ? {
+            condition: move.statusInflict.condition,
+            chance: move.statusInflict.chance ?? 1,
+          }
+        : undefined,
     };
   });
 
@@ -102,6 +118,7 @@ export function createPokemonInstance(
     defense: definition.defense,
     speed: definition.speed,
     moves,
+    status: undefined,
   };
 }
 
@@ -126,7 +143,10 @@ export function calculateDamage(
   isCritical = false,
   typeChart: TypeEffectivenessChart = TYPE_EFFECTIVENESS_CHART
 ): number {
-  const base = move.power + attacker.attack - defender.defense;
+  const attackStat = attacker.status === 'burn'
+    ? Math.max(1, Math.floor(attacker.attack * 0.7))
+    : attacker.attack;
+  const base = move.power + attackStat - defender.defense;
   const typeMultiplier = getTypeEffectivenessMultiplier(
     move.type,
     defender.types,
@@ -135,6 +155,14 @@ export function calculateDamage(
   const critMultiplier = Math.max(1, move.critMultiplier ?? 1.5);
   const total = isCritical ? base * critMultiplier * typeMultiplier : base * typeMultiplier;
   return Math.max(1, Math.floor(total));
+}
+
+export function doesStatusInflictApply(
+  statusInflict: StatusInflictDefinition,
+  rng: () => number = Math.random
+): boolean {
+  const chance = Math.min(1, Math.max(0, statusInflict.chance ?? 1));
+  return rng() < chance;
 }
 
 export function doesMoveHit(

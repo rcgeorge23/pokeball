@@ -5,6 +5,7 @@ import {
   calculateDamage,
   calculateExpectedDamage,
   doesMoveHit,
+  doesStatusInflictApply,
   getTypeEffectivenessMultiplier,
   isCriticalHit,
   pickBestMoveByExpectedDamage,
@@ -90,6 +91,44 @@ test('calculateDamage applies type effectiveness multiplier', () => {
   assert.equal(superEffectiveDamage, 32);
 });
 
+
+
+test('calculateDamage reduces attack when attacker is burned', () => {
+  const burnedAttacker: PokemonInstance = {
+    ...attacker,
+    status: 'burn',
+  };
+
+  const normalDamage = calculateDamage(attacker, defender, {
+    power: 12,
+    type: 'Normal',
+    critMultiplier: 1.5,
+  });
+
+  const burnedDamage = calculateDamage(burnedAttacker, defender, {
+    power: 12,
+    type: 'Normal',
+    critMultiplier: 1.5,
+  });
+
+  assert.equal(normalDamage, 16);
+  assert.equal(burnedDamage, 11);
+});
+
+test('doesStatusInflictApply respects clamped chance', () => {
+  assert.equal(
+    doesStatusInflictApply({ condition: 'burn', chance: 2 }, () => 0.99),
+    true
+  );
+  assert.equal(
+    doesStatusInflictApply({ condition: 'burn', chance: -1 }, () => 0),
+    false
+  );
+  assert.equal(
+    doesStatusInflictApply({ condition: 'burn', chance: 0.3 }, () => 0.3),
+    false
+  );
+});
 
 test('calculateExpectedDamage accounts for move accuracy', () => {
   const expectedDamage = calculateExpectedDamage(attacker, defender, {

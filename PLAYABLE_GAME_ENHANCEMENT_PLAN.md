@@ -41,7 +41,7 @@ Done when: battles visibly animate and feel responsive.
 ### 1.4 Improve AI (from random to reasonable)
 - [x] Replace random move selection with expected damage maximization (consider accuracy). (PR pending)
 - [x] Add a small randomness factor so AI isn’t perfectly deterministic (e.g. 10% chance pick 2nd best). (commit 8870b6f)
-- [x] Log AI choice only in debug mode (toggle). (commit pending)
+- [x] Log AI choice only in debug mode (toggle). (commit a7a6983)
 
 Done when: AI uses better moves most of the time.
 
@@ -62,12 +62,12 @@ Done when: types matter, but implementation stays small.
 ### 2.2 One simple status effect (optional but impactful)
 
 Pick one:
-- [ ] Burn: -attack (or damage over time)
+- [x] Burn: -attack (or damage over time). (commit a7a6983)
 - [ ] Poison: damage over time
 - [ ] Paralyze: speed reduction + small chance to skip turn
-- [ ] Extend moves with optional statusInflict field.
-- [ ] Implement status application + end-of-turn tick if relevant.
-- [ ] Add status icon/text in status panel.
+- [x] Extend moves with optional statusInflict field. (commit a7a6983)
+- [x] Implement status application + end-of-turn tick if relevant. (commit a7a6983)
+- [x] Add status icon/text in status panel. (commit a7a6983)
 
 Done when: at least one status exists end-to-end and is readable.
 

@@ -10,7 +10,11 @@
     "name": "Ember",
     "type": "Fire",
     "power": 14,
-    "accuracy": 0.95
+    "accuracy": 0.95,
+    "statusInflict": {
+      "condition": "burn",
+      "chance": 0.3
+    }
   },
   {
     "id": "leaf_blade",
