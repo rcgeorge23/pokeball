@@ -25,7 +25,7 @@ Done when: the RNG is deterministic and unit-tested.
   - [x] `worldVersion: number` (for future migrations) (this commit)
 - [x] On New Game: generate a seed and persist it. (this commit)
 - [x] On Continue: always reuse the persisted seed. (this commit)
-- [ ] Add a debug overlay (optional) to show current seed.
+- [x] Add a debug overlay (optional) to show current seed. (this commit)
 
 Done when: reloading recreates the exact same world from the saved seed.
 
