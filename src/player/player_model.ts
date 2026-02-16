@@ -136,3 +136,14 @@ export function updatePlayerPosition(x: number, y: number): void {
 export function persistPlayerState(): void {
   savePlayerState(currentState);
 }
+
+export function regenerateWorldSeed(): string {
+  const worldSeed = generateWorldSeed();
+  currentState = {
+    ...currentState,
+    worldSeed,
+    worldVersion: CURRENT_WORLD_VERSION,
+  };
+  savePlayerState(currentState);
+  return worldSeed;
+}

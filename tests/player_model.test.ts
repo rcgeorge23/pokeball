@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import {
   CURRENT_WORLD_VERSION,
   generateWorldSeed,
+  getPlayerState,
   hydratePlayerState,
+  regenerateWorldSeed,
 } from '../src/player/player_model.js';
 
 test('generateWorldSeed returns a prefixed non-empty seed', () => {
@@ -46,4 +48,15 @@ test('hydratePlayerState backfills world metadata for legacy saves', () => {
 
   assert.equal(state.worldVersion, CURRENT_WORLD_VERSION);
   assert.ok(state.worldSeed.startsWith('world-'));
+});
+
+
+test('regenerateWorldSeed updates the current state with a new seed', () => {
+  const initialSeed = getPlayerState().worldSeed;
+
+  const nextSeed = regenerateWorldSeed();
+
+  assert.equal(getPlayerState().worldSeed, nextSeed);
+  assert.equal(getPlayerState().worldVersion, CURRENT_WORLD_VERSION);
+  assert.ok(nextSeed !== initialSeed);
 });
