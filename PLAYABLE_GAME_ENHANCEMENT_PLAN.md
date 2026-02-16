@@ -34,7 +34,7 @@ Done when: misses/criticals happen and are clearly communicated.
 - [x] Tween HP bar changes instead of instant jumps. (PR pending)
 - [x] Add attacker “lunge” tween + defender “hit flash” tween. (PR: add battle lunge/flash tweens)
 - [x] Add a short sprite shake on hit (or camera shake on big hits). (commit 0036827)
-- [ ] Add simple sound hooks (stubbed functions is fine if assets not ready): playSfx("hit"), playSfx("faint").
+- [x] Add simple sound hooks (stubbed functions is fine if assets not ready): playSfx("hit"), playSfx("faint"). (PR: add battle SFX hooks)
 
 Done when: battles visibly animate and feel responsive.
 
