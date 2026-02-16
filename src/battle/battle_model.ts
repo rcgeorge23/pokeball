@@ -122,12 +122,18 @@ export function createTrainerState(
 export function calculateDamage(
   attacker: PokemonInstance,
   defender: PokemonInstance,
-  move: Pick<MoveDefinition, 'power' | 'critMultiplier'>,
-  isCritical = false
+  move: Pick<MoveDefinition, 'power' | 'type' | 'critMultiplier'>,
+  isCritical = false,
+  typeChart: TypeEffectivenessChart = TYPE_EFFECTIVENESS_CHART
 ): number {
   const base = move.power + attacker.attack - defender.defense;
+  const typeMultiplier = getTypeEffectivenessMultiplier(
+    move.type,
+    defender.types,
+    typeChart
+  );
   const critMultiplier = Math.max(1, move.critMultiplier ?? 1.5);
-  const total = isCritical ? base * critMultiplier : base;
+  const total = isCritical ? base * critMultiplier * typeMultiplier : base * typeMultiplier;
   return Math.max(1, Math.floor(total));
 }
 

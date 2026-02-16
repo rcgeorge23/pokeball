@@ -50,6 +50,7 @@ test('isCriticalHit respects clamped crit chance', () => {
 test('calculateDamage applies critical multiplier when critical hit occurs', () => {
   const normalDamage = calculateDamage(attacker, defender, {
     power: 12,
+    type: 'Normal',
     critMultiplier: 1.5,
   });
   const criticalDamage = calculateDamage(
@@ -57,6 +58,7 @@ test('calculateDamage applies critical multiplier when critical hit occurs', () 
     defender,
     {
       power: 12,
+      type: 'Normal',
       critMultiplier: 1.5,
     },
     true
@@ -64,6 +66,28 @@ test('calculateDamage applies critical multiplier when critical hit occurs', () 
 
   assert.equal(normalDamage, 16);
   assert.equal(criticalDamage, 24);
+});
+
+test('calculateDamage applies type effectiveness multiplier', () => {
+  const grassDefender: PokemonInstance = {
+    ...defender,
+    types: ['Grass'],
+  };
+
+  const resistedDamage = calculateDamage(attacker, defender, {
+    power: 12,
+    type: 'Grass',
+    critMultiplier: 1.5,
+  });
+
+  const superEffectiveDamage = calculateDamage(attacker, grassDefender, {
+    power: 12,
+    type: 'Fire',
+    critMultiplier: 1.5,
+  });
+
+  assert.equal(resistedDamage, 16);
+  assert.equal(superEffectiveDamage, 32);
 });
 
 

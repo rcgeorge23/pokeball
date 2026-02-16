@@ -53,9 +53,9 @@ Done when: AI uses better moves most of the time.
 - [x] Extend Pokémon definitions with types: string[] (start with 1 type each). (commit f85350c)
 - [x] Extend move definitions with type: string. (PR: add move type field)
 - [x] Add a small type chart (start with Fire/Grass/Electric/Normal). (commit in this PR)
-- [ ] Apply type multiplier to damage and log:
-  - [ ] “It’s super effective!”
-  - [ ] “It’s not very effective…”
+- [x] Apply type multiplier to damage and log: (commit in this PR)
+  - [x] “It’s super effective!”
+  - [x] “It’s not very effective…”
 
 Done when: types matter, but implementation stays small.
 
