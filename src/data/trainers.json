@@ -4,6 +4,7 @@
     "name": "Ava",
     "party": ["emberfox", "leafling"],
     "behavior": "wander",
+    "facing": "left",
     "x": 320,
     "y": 260
   },
@@ -12,6 +13,7 @@
     "name": "Rowan",
     "party": ["leafling", "sparko"],
     "behavior": "stationary",
+    "facing": "down",
     "x": 820,
     "y": 340
   },
@@ -20,6 +22,7 @@
     "name": "Kai",
     "party": ["sparko", "emberfox"],
     "behavior": "wander",
+    "facing": "up",
     "x": 600,
     "y": 760
   }
