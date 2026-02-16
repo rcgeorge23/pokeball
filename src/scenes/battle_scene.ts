@@ -6,6 +6,7 @@ import {
   createTrainerState,
   decideFirstActor,
   doesMoveHit,
+  isCriticalHit,
   BattleMove,
   MoveDefinition,
   PokemonDefinition,
@@ -335,7 +336,13 @@ export class BattleScene extends Phaser.Scene {
       return 'continue';
     }
 
-    const damage = calculateDamage(attacker, defender, move);
+    const crit = isCriticalHit(move, () => Phaser.Math.FloatBetween(0, 1));
+    const damage = calculateDamage(attacker, defender, move, crit);
+    if (crit) {
+      this.logText?.setText(
+        `${attacker.name} used ${move.name}! Critical hit!`
+      );
+    }
     defender.hp = Math.max(0, defender.hp - damage);
     this.updateHpBars();
 
