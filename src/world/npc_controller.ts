@@ -1,7 +1,12 @@
 import Phaser from 'phaser';
 
+import {
+  canTrainerSeeTarget,
+  DEFAULT_TRAINER_SIGHT_OPTIONS,
+  FacingDirection,
+} from './trainer_line_of_sight';
+
 export type TrainerBehavior = 'stationary' | 'wander';
-export type FacingDirection = 'up' | 'down' | 'left' | 'right';
 
 const DIRECTION_TO_VECTOR: Record<FacingDirection, Phaser.Math.Vector2> = {
   up: new Phaser.Math.Vector2(0, -1),
@@ -183,6 +188,44 @@ export class NpcController {
         return trainer.instance;
       }
     }
+    return null;
+  }
+
+  findTrainerWithLineOfSight(
+    player: Phaser.Physics.Arcade.Image,
+    collisionLayer: Phaser.Tilemaps.TilemapLayer,
+    options?: Partial<{
+      maxDistance: number;
+      minFacingDot: number;
+      sampleStep: number;
+    }>
+  ): TrainerInstance | null {
+    const sightOptions = {
+      ...DEFAULT_TRAINER_SIGHT_OPTIONS,
+      ...options,
+    };
+
+    for (const trainer of this.trainers) {
+      const trainerPosition = {
+        x: trainer.instance.sprite.x,
+        y: trainer.instance.sprite.y,
+      };
+      const canSeePlayer = canTrainerSeeTarget(
+        trainerPosition,
+        trainer.instance.facingDirection,
+        { x: player.x, y: player.y },
+        (point) => {
+          const tile = collisionLayer.getTileAtWorldXY(point.x, point.y);
+          return Boolean(tile && tile.collides);
+        },
+        sightOptions
+      );
+
+      if (canSeePlayer) {
+        return trainer.instance;
+      }
+    }
+
     return null;
   }
 }

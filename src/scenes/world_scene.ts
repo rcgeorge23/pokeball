@@ -22,9 +22,12 @@ export class WorldScene extends Phaser.Scene {
   private player?: Phaser.Physics.Arcade.Image;
   private interactKey?: Phaser.Input.Keyboard.Key;
   private npcController?: NpcController;
+  private collisionLayer?: Phaser.Tilemaps.TilemapLayer;
+  private tileSize = 16;
   private hintText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private nearbyTrainer: TrainerInstance | null = null;
+  private spottingTrainer: TrainerInstance | null = null;
   private playerState!: PlayerState;
   private defeatedTrainerIds = new Set<string>();
   private lastSaveTime = 0;
@@ -51,6 +54,8 @@ export class WorldScene extends Phaser.Scene {
       this,
       generatedMap
     );
+    this.collisionLayer = collisionLayer;
+    this.tileSize = tileSize;
     this.defeatedTrainerIds = new Set(this.playerState.defeatedTrainerIds);
 
     const generatedSpawnX = generatedMap.spawnPoints.playerStart.x * tileSize + tileSize / 2;
@@ -180,11 +185,27 @@ export class WorldScene extends Phaser.Scene {
     this.player.setVelocity(velocity.x, velocity.y);
 
     this.npcController?.update(time);
+    this.spottingTrainer =
+      this.player && this.npcController && this.collisionLayer
+        ? this.npcController.findTrainerWithLineOfSight(
+            this.player,
+            this.collisionLayer,
+            {
+              maxDistance: this.tileSize * 8,
+              sampleStep: this.tileSize / 2,
+            }
+          )
+        : null;
     this.nearbyTrainer =
       this.npcController?.findNearbyTrainer(this.player, 80) ?? null;
 
     if (this.hintText) {
-      if (this.nearbyTrainer) {
+      if (
+        this.spottingTrainer &&
+        !this.defeatedTrainerIds.has(this.spottingTrainer.definition.id)
+      ) {
+        this.hintText.setText(`${this.spottingTrainer.definition.name} spots you!`);
+      } else if (this.nearbyTrainer) {
         const isDefeated = this.defeatedTrainerIds.has(
           this.nearbyTrainer.definition.id
         );

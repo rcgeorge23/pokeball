@@ -86,7 +86,7 @@ Done when: collisions come from the tilemap, not hard-coded rectangles.
 
 ### 3.2 Trainer line-of-sight battles (classic feel)
 - [x] Give trainers facing direction (for stationary and wander). (commit in this PR)
-- [ ] Implement LOS cone/ray check.
+- [x] Implement LOS cone/ray check. (commit a73263a)
 - [ ] If player enters LOS:
   - [ ] trainer notices (exclamation marker)
   - [ ] trainer walks toward player
