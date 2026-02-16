@@ -129,6 +129,22 @@ export class WorldScene extends Phaser.Scene {
       )
       .setScrollFactor(0);
 
+    if (import.meta.env.DEV) {
+      this.add
+        .text(
+          width - 24,
+          24,
+          `Seed: ${this.playerState.worldSeed} · v${this.playerState.worldVersion}`,
+          {
+            fontSize: '13px',
+            color: '#94a3b8',
+            align: 'right',
+          }
+        )
+        .setOrigin(1, 0)
+        .setScrollFactor(0);
+    }
+
     this.setupPokedexUi();
   }
 
