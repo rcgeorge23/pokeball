@@ -51,8 +51,10 @@ export class WorldScene extends Phaser.Scene {
       collisionLayer?.setCollisionFromCollisionGroup();
     }
 
-    const worldWidth = Math.max(width * 2, tilemap.widthInPixels);
-    const worldHeight = Math.max(height * 2, tilemap.heightInPixels);
+    const mapWidth = tilemap.widthInPixels;
+    const mapHeight = tilemap.heightInPixels;
+    const worldWidth = mapWidth > 0 ? mapWidth : width;
+    const worldHeight = mapHeight > 0 ? mapHeight : height;
     this.playerState = getPlayerState();
     this.defeatedTrainerIds = new Set(this.playerState.defeatedTrainerIds);
 
