@@ -59,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   private opponentSprite?: Phaser.GameObjects.Image;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
+  private sfxEnabled = true;
   private opponentTrainerId?: string;
   private opponentAlreadyDefeated = false;
   private playerPokemonIndex = 0;
@@ -364,6 +365,7 @@ export class BattleScene extends Phaser.Scene {
       );
     }
     defender.hp = Math.max(0, defender.hp - damage);
+    this.playSfx('hit');
     this.updateHpBars(true);
 
     if (defender.hp > 0) {
@@ -377,6 +379,7 @@ export class BattleScene extends Phaser.Scene {
         nextOpponentIndex < this.opponentTrainer.party.length
       ) {
         const faintedName = defender.name;
+        this.playSfx('faint');
         this.time.delayedCall(700, () => {
           this.setOpponentPokemon(nextOpponentIndex);
           this.logText?.setText(
@@ -395,6 +398,7 @@ export class BattleScene extends Phaser.Scene {
     const nextPlayerIndex = this.playerPokemonIndex + 1;
     if (this.playerTrainer && nextPlayerIndex < this.playerTrainer.party.length) {
       const faintedName = defender.name;
+      this.playSfx('faint');
       this.time.delayedCall(700, () => {
         this.setPlayerPokemon(nextPlayerIndex);
         this.logText?.setText(
@@ -579,5 +583,19 @@ export class BattleScene extends Phaser.Scene {
         button.input.enabled = enabled;
       }
     });
+  }
+
+  private playSfx(name: 'hit' | 'faint'): void {
+    if (!this.sfxEnabled) {
+      return;
+    }
+
+    const key = `sfx-${name}`;
+    if (this.cache.audio.exists(key)) {
+      this.sound.play(key);
+      return;
+    }
+
+    console.debug(`[SFX stub] ${name}`);
   }
 }
