@@ -20,11 +20,11 @@ This plan upgrades the current static world into a more interesting, determinist
 Done when: the RNG is deterministic and unit-tested.
 
 ### 1.2 Save/restore seed in player state
-- [ ] Extend player save state with:
-  - [ ] `worldSeed: string` (or number)
-  - [ ] `worldVersion: number` (for future migrations)
-- [ ] On New Game: generate a seed and persist it.
-- [ ] On Continue: always reuse the persisted seed.
+- [x] Extend player save state with:
+  - [x] `worldSeed: string` (or number)
+  - [x] `worldVersion: number` (for future migrations) (this commit)
+- [x] On New Game: generate a seed and persist it. (this commit)
+- [x] On Continue: always reuse the persisted seed. (this commit)
 - [ ] Add a debug overlay (optional) to show current seed.
 
 Done when: reloading recreates the exact same world from the saved seed.
