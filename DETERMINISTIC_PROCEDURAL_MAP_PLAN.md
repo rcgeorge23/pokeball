@@ -66,16 +66,16 @@ Done when: you can iterate on generation quickly and reproduce bugs via seed.
 Goal: a map that feels like it has structure (routes, loops, clearings), not pure noise.
 
 ### 3.1 Generate a high-level navigation graph
-- [ ] Generate a set of key nodes:
-  - [ ] `start`
-  - [ ] `hub` (optional)
-  - [ ] `bossGate` / `championArena` placeholder
-  - [ ] several `encounterNodes` (clearings)
-  - [ ] several `lootNodes` (future-proof)
-- [ ] Connect nodes with a graph that guarantees:
-  - [ ] at least one main path from start → end
-  - [ ] at least one optional loop / shortcut
-- [ ] Store this graph in map metadata for future use (quests, gating).
+- [x] Generate a set of key nodes: (this commit)
+  - [x] `start` (this commit)
+  - [x] `hub` (optional) (this commit)
+  - [x] `bossGate` / `championArena` placeholder (this commit)
+  - [x] several `encounterNodes` (clearings) (this commit)
+  - [x] several `lootNodes` (future-proof) (this commit)
+- [x] Connect nodes with a graph that guarantees: (this commit)
+  - [x] at least one main path from start → end (this commit)
+  - [x] at least one optional loop / shortcut (this commit)
+- [x] Store this graph in map metadata for future use (quests, gating). (this commit)
 
 Done when: every map has a consistent “journey” structure.
 
