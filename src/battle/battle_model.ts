@@ -9,7 +9,7 @@ export interface MoveDefinition {
   statusInflict?: StatusInflictDefinition;
 }
 
-export type StatusCondition = 'burn';
+export type StatusCondition = 'burn' | 'poison';
 
 export interface StatusInflictDefinition {
   condition: StatusCondition;
@@ -163,6 +163,10 @@ export function doesStatusInflictApply(
 ): boolean {
   const chance = Math.min(1, Math.max(0, statusInflict.chance ?? 1));
   return rng() < chance;
+}
+
+export function getPoisonTickDamage(pokemon: Pick<PokemonInstance, 'maxHp'>): number {
+  return Math.max(1, Math.floor(pokemon.maxHp * 0.1));
 }
 
 export function doesMoveHit(

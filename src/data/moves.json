@@ -28,5 +28,15 @@
     "type": "Electric",
     "power": 15,
     "accuracy": 0.9
+  },
+  {
+    "id": "venom_jab",
+    "name": "Venom Jab",
+    "type": "Normal",
+    "power": 9,
+    "statusInflict": {
+      "condition": "poison",
+      "chance": 0.35
+    }
   }
 ]
