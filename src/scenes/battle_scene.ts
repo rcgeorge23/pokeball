@@ -13,6 +13,7 @@ import {
   PokemonDefinition,
   PokemonInstance,
   TrainerState,
+  getTypeEffectivenessMultiplier,
 } from '../battle/battle_model';
 import { applyVictoryReward } from '../battle/rewards';
 import {
@@ -389,16 +390,32 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const crit = isCriticalHit(move, () => Phaser.Math.FloatBetween(0, 1));
+    const typeMultiplier = getTypeEffectivenessMultiplier(
+      move.type,
+      defender.types
+    );
     const damage = calculateDamage(attacker, defender, move, crit);
+    const feedback: string[] = [];
     if (crit) {
       this.cameras.main.shake(
         BattleScene.CRIT_SHAKE_DURATION_MS,
         BattleScene.CRIT_SHAKE_INTENSITY
       );
+      feedback.push('Critical hit!');
+    }
+
+    if (typeMultiplier > 1) {
+      feedback.push("It's super effective!");
+    } else if (typeMultiplier < 1) {
+      feedback.push("It's not very effective...");
+    }
+
+    if (feedback.length > 0) {
       this.logText?.setText(
-        `${attacker.name} used ${move.name}! Critical hit!`
+        `${attacker.name} used ${move.name}! ${feedback.join(' ')}`
       );
     }
+
     defender.hp = Math.max(0, defender.hp - damage);
     this.playSfx('hit');
     this.updateHpBars(true);
