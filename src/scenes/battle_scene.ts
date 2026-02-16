@@ -59,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   private playerSprite?: Phaser.GameObjects.Image;
   private opponentSprite?: Phaser.GameObjects.Image;
   private moveButtons: Phaser.GameObjects.Container[] = [];
+  private continueButton?: Phaser.GameObjects.Container;
   private isResolving = false;
   private sfxEnabled = true;
   private opponentTrainerId?: string;
@@ -142,6 +143,8 @@ export class BattleScene extends Phaser.Scene {
     this.time.removeAllEvents();
     this.isResolving = false;
     this.clearMoveButtons();
+    this.continueButton?.destroy();
+    this.continueButton = undefined;
     this.playerTrainer = undefined;
     this.opponentTrainer = undefined;
     this.playerPokemon = undefined;
@@ -507,6 +510,7 @@ export class BattleScene extends Phaser.Scene {
   private endBattle(result: 'win' | 'lose'): void {
     this.isResolving = true;
     this.setButtonsEnabled(false);
+    this.clearMoveButtons();
 
     let rewardMessage = '';
     if (
@@ -552,15 +556,26 @@ export class BattleScene extends Phaser.Scene {
       fontSize: '18px',
       color: '#0f172a',
     });
+    let didContinue = false;
+    const continueBattle = (): void => {
+      if (didContinue) {
+        return;
+      }
+      didContinue = true;
+      this.scene.start('WorldScene');
+    };
+
+    this.continueButton?.destroy();
     const container = this.add.container(x, y, [button, label]);
     container.setSize(buttonWidth, buttonHeight);
+    container.setDepth(10);
     container.setInteractive(
       new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
-    container.on('pointerdown', () => {
-      this.scene.start('WorldScene');
-    });
+    container.on('pointerdown', continueBattle);
+    this.continueButton = container;
+    this.isResolving = false;
   }
 
   private updateHpBars(animate = false): void {
