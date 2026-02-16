@@ -70,6 +70,7 @@ test('calculateExpectedDamage accounts for move accuracy', () => {
   const expectedDamage = calculateExpectedDamage(attacker, defender, {
     id: 'precise-strike',
     name: 'Precise Strike',
+    type: 'Normal',
     power: 12,
     accuracy: 0.75,
     critChance: 0.1,
@@ -86,6 +87,7 @@ test('pickBestMoveByExpectedDamage selects highest expected damage move', () => 
       {
         id: 'heavy-slam',
         name: 'Heavy Slam',
+        type: 'Normal',
         power: 18,
         accuracy: 0.5,
         critChance: 0.1,
@@ -94,6 +96,7 @@ test('pickBestMoveByExpectedDamage selects highest expected damage move', () => 
       {
         id: 'steady-hit',
         name: 'Steady Hit',
+        type: 'Normal',
         power: 13,
         accuracy: 0.9,
         critChance: 0.1,
@@ -114,6 +117,7 @@ test('pickBestMoveByExpectedDamage can pick second-best move for variety', () =>
       {
         id: 'heavy-slam',
         name: 'Heavy Slam',
+        type: 'Normal',
         power: 18,
         accuracy: 0.5,
         critChance: 0.1,
@@ -122,6 +126,7 @@ test('pickBestMoveByExpectedDamage can pick second-best move for variety', () =>
       {
         id: 'steady-hit',
         name: 'Steady Hit',
+        type: 'Normal',
         power: 13,
         accuracy: 0.9,
         critChance: 0.1,

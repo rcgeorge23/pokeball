@@ -2,22 +2,26 @@
   {
     "id": "tackle",
     "name": "Tackle",
+    "type": "Normal",
     "power": 12
   },
   {
     "id": "ember",
     "name": "Ember",
+    "type": "Fire",
     "power": 14,
     "accuracy": 0.95
   },
   {
     "id": "leaf_blade",
     "name": "Leaf Blade",
+    "type": "Grass",
     "power": 13
   },
   {
     "id": "spark",
     "name": "Spark",
+    "type": "Electric",
     "power": 15,
     "accuracy": 0.9
   }

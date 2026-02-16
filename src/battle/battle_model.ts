@@ -1,6 +1,7 @@
 export interface MoveDefinition {
   id: string;
   name: string;
+  type: string;
   power: number;
   accuracy?: number;
   critChance?: number;

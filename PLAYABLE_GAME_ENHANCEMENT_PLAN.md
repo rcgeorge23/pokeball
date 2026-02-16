@@ -51,7 +51,7 @@ Done when: AI uses better moves most of the time.
 
 ### 2.1 Add a minimal type system (3–4 types)
 - [x] Extend Pokémon definitions with types: string[] (start with 1 type each). (commit f85350c)
-- [ ] Extend move definitions with type: string.
+- [x] Extend move definitions with type: string. (PR: add move type field)
 - [ ] Add a small type chart (start with Fire/Grass/Electric/Normal).
 - [ ] Apply type multiplier to damage and log:
   - [ ] “It’s super effective!”
