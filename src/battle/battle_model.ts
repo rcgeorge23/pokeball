@@ -16,6 +16,7 @@ export interface BattleMove extends MoveDefinition {
 export interface PokemonDefinition {
   id: string;
   name: string;
+  types: string[];
   hp: number;
   attack: number;
   defense: number;
@@ -26,6 +27,7 @@ export interface PokemonDefinition {
 export interface PokemonInstance {
   id: string;
   name: string;
+  types: string[];
   maxHp: number;
   hp: number;
   attack: number;
@@ -74,6 +76,7 @@ export function createPokemonInstance(
   return {
     id: definition.id,
     name: definition.name,
+    types: [...definition.types],
     maxHp: definition.hp,
     hp: definition.hp,
     attack: definition.attack,

@@ -13,6 +13,7 @@ import {
 const attacker: PokemonInstance = {
   id: 'attacker',
   name: 'Attacker',
+  types: ['Normal'],
   maxHp: 50,
   hp: 50,
   attack: 14,
@@ -24,6 +25,7 @@ const attacker: PokemonInstance = {
 const defender: PokemonInstance = {
   id: 'defender',
   name: 'Defender',
+  types: ['Normal'],
   maxHp: 50,
   hp: 50,
   attack: 9,

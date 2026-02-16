@@ -2,6 +2,7 @@
   {
     "id": "emberfox",
     "name": "Emberfox",
+    "types": ["Fire"],
     "hp": 48,
     "attack": 12,
     "defense": 8,
@@ -11,6 +12,7 @@
   {
     "id": "leafling",
     "name": "Leafling",
+    "types": ["Grass"],
     "hp": 52,
     "attack": 10,
     "defense": 10,
@@ -20,6 +22,7 @@
   {
     "id": "sparko",
     "name": "Sparko",
+    "types": ["Electric"],
     "hp": 44,
     "attack": 13,
     "defense": 7,
