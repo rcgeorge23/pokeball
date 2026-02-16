@@ -48,6 +48,8 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpText?: Phaser.GameObjects.Text;
   private playerNameText?: Phaser.GameObjects.Text;
   private opponentNameText?: Phaser.GameObjects.Text;
+  private playerHpBarTween?: Phaser.Tweens.Tween;
+  private opponentHpBarTween?: Phaser.Tweens.Tween;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private isResolving = false;
   private opponentTrainerId?: string;
@@ -351,7 +353,7 @@ export class BattleScene extends Phaser.Scene {
       );
     }
     defender.hp = Math.max(0, defender.hp - damage);
-    this.updateHpBars();
+    this.updateHpBars(true);
 
     if (defender.hp > 0) {
       return 'continue';
@@ -456,7 +458,7 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
-  private updateHpBars(): void {
+  private updateHpBars(animate = false): void {
     if (
       !this.playerPokemon ||
       !this.opponentPokemon ||
@@ -469,8 +471,29 @@ export class BattleScene extends Phaser.Scene {
     const playerRatio = this.playerPokemon.hp / this.playerPokemon.maxHp;
     const opponentRatio = this.opponentPokemon.hp / this.opponentPokemon.maxHp;
 
-    this.playerHpBar.width = 200 * Phaser.Math.Clamp(playerRatio, 0, 1);
-    this.opponentHpBar.width = 200 * Phaser.Math.Clamp(opponentRatio, 0, 1);
+    const targetPlayerWidth = 200 * Phaser.Math.Clamp(playerRatio, 0, 1);
+    const targetOpponentWidth = 200 * Phaser.Math.Clamp(opponentRatio, 0, 1);
+
+    if (animate) {
+      this.playerHpBarTween?.remove();
+      this.opponentHpBarTween?.remove();
+
+      this.playerHpBarTween = this.tweens.add({
+        targets: this.playerHpBar,
+        width: targetPlayerWidth,
+        duration: 260,
+        ease: 'Sine.Out',
+      });
+      this.opponentHpBarTween = this.tweens.add({
+        targets: this.opponentHpBar,
+        width: targetOpponentWidth,
+        duration: 260,
+        ease: 'Sine.Out',
+      });
+    } else {
+      this.playerHpBar.width = targetPlayerWidth;
+      this.opponentHpBar.width = targetOpponentWidth;
+    }
 
     this.playerHpText?.setText(
       `HP: ${this.playerPokemon.hp} / ${this.playerPokemon.maxHp}`
