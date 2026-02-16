@@ -64,7 +64,7 @@ Done when: types matter, but implementation stays small.
 Pick one:
 - [x] Burn: -attack (or damage over time). (commit a7a6983)
 - [x] Poison: damage over time (commit 0d02bab)
-- [ ] Paralyze: speed reduction + small chance to skip turn
+- [x] Paralyze: speed reduction + small chance to skip turn (commit in this commit)
 - [x] Extend moves with optional statusInflict field. (commit a7a6983)
 - [x] Implement status application + end-of-turn tick if relevant. (commit a7a6983)
 - [x] Add status icon/text in status panel. (commit a7a6983)

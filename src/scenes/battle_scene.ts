@@ -7,6 +7,7 @@ import {
   createTrainerState,
   decideFirstActor,
   doesMoveHit,
+  doesParalysisPreventAction,
   doesStatusInflictApply,
   isCriticalHit,
   BattleMove,
@@ -262,6 +263,10 @@ export class BattleScene extends Phaser.Scene {
       return 'Status: Poisoned';
     }
 
+    if (status === 'paralyze') {
+      return 'Status: Paralyzed';
+    }
+
     return 'Status: Healthy';
   }
 
@@ -492,6 +497,11 @@ export class BattleScene extends Phaser.Scene {
     const defender =
       attackerSide === 'player' ? this.opponentPokemon : this.playerPokemon;
 
+    if (doesParalysisPreventAction(attacker, () => Phaser.Math.FloatBetween(0, 1))) {
+      this.logText?.setText(`${attacker.name} is paralyzed! It can't move!`);
+      return 'continue';
+    }
+
     this.logText?.setText(`${attacker.name} used ${move.name}!`);
 
     const didHit = doesMoveHit(move, () => Phaser.Math.FloatBetween(0, 1));
@@ -533,7 +543,11 @@ export class BattleScene extends Phaser.Scene {
     ) {
       defender.status = move.statusInflict.condition;
       const statusText =
-        move.statusInflict.condition === 'burn' ? 'burned' : 'poisoned';
+        move.statusInflict.condition === 'burn'
+          ? 'burned'
+          : move.statusInflict.condition === 'poison'
+            ? 'poisoned'
+            : 'paralyzed';
       feedback.push(`${defender.name} was ${statusText}!`);
       this.updateStatusTexts();
     }

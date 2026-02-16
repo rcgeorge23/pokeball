@@ -4,9 +4,12 @@ import assert from 'node:assert/strict';
 import {
   calculateDamage,
   calculateExpectedDamage,
+  decideFirstActor,
   doesMoveHit,
+  doesParalysisPreventAction,
   doesStatusInflictApply,
   getTypeEffectivenessMultiplier,
+  getEffectiveSpeed,
   getPoisonTickDamage,
   isCriticalHit,
   pickBestMoveByExpectedDamage,
@@ -138,6 +141,34 @@ test('doesStatusInflictApply respects clamped chance', () => {
 test('getPoisonTickDamage returns 10% of max HP with minimum 1', () => {
   assert.equal(getPoisonTickDamage({ maxHp: 80 }), 8);
   assert.equal(getPoisonTickDamage({ maxHp: 5 }), 1);
+});
+
+
+test('getEffectiveSpeed halves speed when paralyzed', () => {
+  assert.equal(getEffectiveSpeed({ speed: 14, status: 'paralyze' }), 7);
+  assert.equal(getEffectiveSpeed({ speed: 1, status: 'paralyze' }), 1);
+  assert.equal(getEffectiveSpeed({ speed: 14, status: 'burn' }), 14);
+});
+
+test('doesParalysisPreventAction uses 25% skip chance only when paralyzed', () => {
+  assert.equal(doesParalysisPreventAction({ status: 'paralyze' }, () => 0.2), true);
+  assert.equal(doesParalysisPreventAction({ status: 'paralyze' }, () => 0.25), false);
+  assert.equal(doesParalysisPreventAction({ status: 'burn' }, () => 0), false);
+});
+
+test('decideFirstActor uses effective speed with paralysis', () => {
+  const paralyzedFastPokemon: PokemonInstance = {
+    ...attacker,
+    speed: 20,
+    status: 'paralyze',
+  };
+
+  const normalPokemon: PokemonInstance = {
+    ...defender,
+    speed: 12,
+  };
+
+  assert.equal(decideFirstActor(paralyzedFastPokemon, normalPokemon), 'b');
 });
 
 test('calculateExpectedDamage accounts for move accuracy', () => {

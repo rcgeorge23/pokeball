@@ -9,7 +9,7 @@ export interface MoveDefinition {
   statusInflict?: StatusInflictDefinition;
 }
 
-export type StatusCondition = 'burn' | 'poison';
+export type StatusCondition = 'burn' | 'poison' | 'paralyze';
 
 export interface StatusInflictDefinition {
   condition: StatusCondition;
@@ -190,11 +190,33 @@ export function decideFirstActor(
   pokemonB: PokemonInstance,
   rng: () => number = Math.random
 ): TurnOrder {
-  if (pokemonA.speed === pokemonB.speed) {
+  const pokemonASpeed = getEffectiveSpeed(pokemonA);
+  const pokemonBSpeed = getEffectiveSpeed(pokemonB);
+
+  if (pokemonASpeed === pokemonBSpeed) {
     return rng() < 0.5 ? 'a' : 'b';
   }
 
-  return pokemonA.speed > pokemonB.speed ? 'a' : 'b';
+  return pokemonASpeed > pokemonBSpeed ? 'a' : 'b';
+}
+
+export function getEffectiveSpeed(pokemon: Pick<PokemonInstance, 'speed' | 'status'>): number {
+  if (pokemon.status !== 'paralyze') {
+    return pokemon.speed;
+  }
+
+  return Math.max(1, Math.floor(pokemon.speed * 0.5));
+}
+
+export function doesParalysisPreventAction(
+  pokemon: Pick<PokemonInstance, 'status'>,
+  rng: () => number = Math.random
+): boolean {
+  if (pokemon.status !== 'paralyze') {
+    return false;
+  }
+
+  return rng() < 0.25;
 }
 
 export function calculateExpectedDamage(
