@@ -34,6 +34,9 @@ interface BattleSceneData {
 }
 
 export class BattleScene extends Phaser.Scene {
+  private static readonly CRIT_SHAKE_DURATION_MS = 180;
+  private static readonly CRIT_SHAKE_INTENSITY = 0.006;
+
   private playerTrainer?: TrainerState;
   private opponentTrainer?: TrainerState;
   private playerPokemon?: PokemonInstance;
@@ -339,6 +342,10 @@ export class BattleScene extends Phaser.Scene {
     const crit = isCriticalHit(move, () => Phaser.Math.FloatBetween(0, 1));
     const damage = calculateDamage(attacker, defender, move, crit);
     if (crit) {
+      this.cameras.main.shake(
+        BattleScene.CRIT_SHAKE_DURATION_MS,
+        BattleScene.CRIT_SHAKE_INTENSITY
+      );
       this.logText?.setText(
         `${attacker.name} used ${move.name}! Critical hit!`
       );
