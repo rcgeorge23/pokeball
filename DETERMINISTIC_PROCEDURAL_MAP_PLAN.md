@@ -80,10 +80,10 @@ Goal: a map that feels like it has structure (routes, loops, clearings), not pur
 Done when: every map has a consistent “journey” structure.
 
 ### 3.2 Carve routes from the graph into tiles
-- [ ] Carve walkable paths between connected nodes using a grid routing algorithm:
-  - [ ] Keep it simple: Manhattan routing with controlled bends, or weighted routing that avoids water/rocks.
-  - [ ] Widen paths occasionally (e.g. 2–3 tiles) to avoid “corridor” feel.
-  - [ ] Add a few “clearings” (open areas) around nodes.
+- [x] Carve walkable paths between connected nodes using a grid routing algorithm. (this commit)
+  - [x] Keep it simple: Manhattan routing with controlled bends, or weighted routing that avoids water/rocks. (this commit)
+  - [x] Widen paths occasionally (e.g. 2–3 tiles) to avoid “corridor” feel. (this commit)
+  - [x] Add a few “clearings” (open areas) around nodes. (this commit)
 
 Done when: the player can traverse a recognizable route network.
 
