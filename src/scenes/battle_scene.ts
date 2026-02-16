@@ -7,6 +7,7 @@ import {
   createTrainerState,
   decideFirstActor,
   doesMoveHit,
+  doesStatusInflictApply,
   isCriticalHit,
   BattleMove,
   MoveDefinition,
@@ -55,6 +56,8 @@ export class BattleScene extends Phaser.Scene {
   private opponentHpText?: Phaser.GameObjects.Text;
   private playerNameText?: Phaser.GameObjects.Text;
   private opponentNameText?: Phaser.GameObjects.Text;
+  private playerStatusText?: Phaser.GameObjects.Text;
+  private opponentStatusText?: Phaser.GameObjects.Text;
   private playerHpBarTween?: Phaser.Tweens.Tween;
   private opponentHpBarTween?: Phaser.Tweens.Tween;
   private playerSprite?: Phaser.GameObjects.Image;
@@ -193,21 +196,33 @@ export class BattleScene extends Phaser.Scene {
     );
 
     this.playerHpBar = this.add
-      .rectangle(32, this.scale.height - 222, 200, 12, 0x22c55e)
+      .rectangle(32, this.scale.height - 210, 200, 12, 0x22c55e)
       .setOrigin(0);
     this.opponentHpBar = this.add
-      .rectangle(this.scale.width - 268, 118, 200, 12, 0x22c55e)
+      .rectangle(this.scale.width - 268, 130, 200, 12, 0x22c55e)
       .setOrigin(0);
 
-    this.playerHpText = this.add.text(32, this.scale.height - 204, '', {
+    this.playerStatusText = this.add.text(32, this.scale.height - 232, '', {
+      fontSize: '14px',
+      color: '#fca5a5',
+    });
+
+    this.opponentStatusText = this.add.text(this.scale.width - 268, 110, '', {
+      fontSize: '14px',
+      color: '#fca5a5',
+    });
+
+    this.playerHpText = this.add.text(32, this.scale.height - 192, '', {
       fontSize: '14px',
       color: '#cbd5f5',
     });
 
-    this.opponentHpText = this.add.text(this.scale.width - 268, 136, '', {
+    this.opponentHpText = this.add.text(this.scale.width - 268, 148, '', {
       fontSize: '14px',
       color: '#cbd5f5',
     });
+
+    this.updateStatusTexts();
   }
 
   private refreshStatusPanels(): void {
@@ -222,7 +237,23 @@ export class BattleScene extends Phaser.Scene {
 
     this.playerNameText.setText(this.playerPokemon.name);
     this.opponentNameText.setText(this.opponentPokemon.name);
+    this.updateStatusTexts();
     this.updateHpBars();
+  }
+
+  private updateStatusTexts(): void {
+    if (!this.playerPokemon || !this.opponentPokemon) {
+      return;
+    }
+
+    this.playerStatusText?.setText(
+      this.playerPokemon.status === 'burn' ? 'Status: Burned' : 'Status: Healthy'
+    );
+    this.opponentStatusText?.setText(
+      this.opponentPokemon.status === 'burn'
+        ? 'Status: Burned'
+        : 'Status: Healthy'
+    );
   }
 
   private clearMoveButtons(): void {
@@ -410,13 +441,25 @@ export class BattleScene extends Phaser.Scene {
       feedback.push("It's not very effective...");
     }
 
+    defender.hp = Math.max(0, defender.hp - damage);
+
+    if (
+      defender.hp > 0 &&
+      !defender.status &&
+      move.statusInflict &&
+      doesStatusInflictApply(move.statusInflict, () => Phaser.Math.FloatBetween(0, 1))
+    ) {
+      defender.status = move.statusInflict.condition;
+      feedback.push(`${defender.name} was burned!`);
+      this.updateStatusTexts();
+    }
+
     if (feedback.length > 0) {
       this.logText?.setText(
         `${attacker.name} used ${move.name}! ${feedback.join(' ')}`
       );
     }
 
-    defender.hp = Math.max(0, defender.hp - damage);
     this.playSfx('hit');
     this.updateHpBars(true);
 
