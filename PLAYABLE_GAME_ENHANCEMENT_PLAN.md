@@ -26,7 +26,7 @@ Done when: speed affects who goes first and it’s visible in logs.
   - [x] critMultiplier (default e.g. 1.5)
 - [x] Apply miss chance and log “It missed!” (commit ac2308d)
 - [x] Apply critical hits and log “Critical hit!” (commit 16c579f)
-- [ ] Add small camera shake on crit (use Phaser Camera Shake)
+- [x] Add small camera shake on crit (use Phaser Camera Shake). (PR pending)
 
 Done when: misses/criticals happen and are clearly communicated.
 
