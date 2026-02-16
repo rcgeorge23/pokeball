@@ -79,7 +79,7 @@ Done when: at least one status exists end-to-end and is readable.
 - [x] Add a basic Tiled map (single “town route” layout). (commit e438747)
 - [x] Load tilemap JSON + tileset in PreloadScene. (commit 12b96c8)
 - [x] Replace manual obstacles with tile collision layer. (commit d5b6688)
-- [ ] Prefer “collision from collision data” / collision group approach.
+- [x] Prefer “collision from collision data” / collision group approach. (commit in this commit)
 - [ ] Ensure camera bounds match map bounds.
 
 Done when: collisions come from the tilemap, not hard-coded rectangles.

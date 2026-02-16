@@ -48,7 +48,7 @@ export class WorldScene extends Phaser.Scene {
       tilemap.createLayer('Ground', mapTileset, 0, 0);
       collisionLayer = tilemap.createLayer('Collision', mapTileset, 0, 0);
       collisionLayer?.setVisible(false);
-      collisionLayer?.setCollisionByExclusion([-1]);
+      collisionLayer?.setCollisionFromCollisionGroup();
     }
 
     const worldWidth = Math.max(width * 2, tilemap.widthInPixels);
