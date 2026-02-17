@@ -14,7 +14,12 @@ import {
   updatePlayerPosition,
 } from '../player/player_model';
 import { deriveJoystickDirection } from '../world/joystick_input';
-import { GeneratedMapPointOfInterest, generateMapFromSeed } from '../world/generated_map';
+import {
+  CHAMPION_GATE_REQUIRED_DEFEATS,
+  GeneratedMapPointOfInterest,
+  generateMapFromSeed,
+} from '../world/generated_map';
+import { SeededRng } from '../world/seeded_rng';
 import { generateProceduralTrainerData } from '../world/procedural_trainer_generator';
 import { renderGeneratedMap } from '../world/generated_map_renderer';
 
@@ -47,6 +52,7 @@ export class WorldScene extends Phaser.Scene {
   private healPointWorldPosition?: Phaser.Math.Vector2;
   private signposts: Array<{ position: Phaser.Math.Vector2; message: string }> = [];
   private pointsOfInterest: Array<{ poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 }> = [];
+  private championArenaWorldPosition?: Phaser.Math.Vector2;
   private activeDialogueBubble?: Phaser.GameObjects.Text;
   private worldMessage = '';
   private worldMessageUntil = 0;
@@ -96,9 +102,21 @@ export class WorldScene extends Phaser.Scene {
       poi,
       position: new Phaser.Math.Vector2(poi.x * tileSize + tileSize / 2, poi.y * tileSize + tileSize / 2),
     }));
+    const championArenaNode = generatedMap.metadata.navigationGraph.nodes.find(
+      (node) => node.type === 'championArena'
+    );
+    this.championArenaWorldPosition = championArenaNode
+      ? new Phaser.Math.Vector2(
+          championArenaNode.x * tileSize + tileSize / 2,
+          championArenaNode.y * tileSize + tileSize / 2
+        )
+      : undefined;
     this.renderHealPointMarker(this.healPointWorldPosition);
     this.signposts.forEach((signpost) => this.renderSignpostMarker(signpost.position));
     this.pointsOfInterest.forEach((pointOfInterest) => this.renderPointOfInterestMarker(pointOfInterest));
+    if (this.championArenaWorldPosition) {
+      this.renderChampionArenaMarker(this.championArenaWorldPosition);
+    }
 
     const playerStartX = this.playerState.position?.x ?? generatedSpawnX;
     const playerStartY = this.playerState.position?.y ?? generatedSpawnY;
@@ -269,6 +287,8 @@ export class WorldScene extends Phaser.Scene {
         );
       } else if (nearHealPoint) {
         this.hintText.setText('Press E to heal your team');
+      } else if (this.isPlayerNearChampionArena()) {
+        this.hintText.setText(this.getChampionArenaHint());
       } else if (this.getNearbySignpost()) {
         this.hintText.setText('Press E to read sign');
       } else if (this.getNearbyPointOfInterest()) {
@@ -286,6 +306,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.nearbyTrainer) {
         this.startNearbyBattle();
       } else {
+        this.tryChallengeChampionArena();
         this.tryHealPlayerParty(time);
         this.tryReadNearbySignpost();
         this.tryInspectNearbyPointOfInterest();
@@ -489,6 +510,111 @@ export class WorldScene extends Phaser.Scene {
     ];
 
     return messages[index % messages.length];
+  }
+
+  private isPlayerNearChampionArena(): boolean {
+    if (!this.player || !this.championArenaWorldPosition) {
+      return false;
+    }
+
+    return Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      this.championArenaWorldPosition.x,
+      this.championArenaWorldPosition.y
+    ) <= this.tileSize * 1.5;
+  }
+
+  private getDefeatedGeneratedTrainerCount(): number {
+    return this.playerState.defeatedTrainerIds.filter((trainerId) =>
+      trainerId.startsWith('generated-trainer-')
+    ).length;
+  }
+
+  private getChampionArenaHint(): string {
+    const championTrainerId = this.getChampionTrainerId();
+    const championAlreadyDefeated = this.playerState.defeatedTrainerIds.includes(championTrainerId);
+    if (championAlreadyDefeated) {
+      return 'Champion arena cleared. Press E to rematch the Champion.';
+    }
+
+    const defeatedCount = this.getDefeatedGeneratedTrainerCount();
+    if (defeatedCount < CHAMPION_GATE_REQUIRED_DEFEATS) {
+      return `Champion Gate: ${defeatedCount}/${CHAMPION_GATE_REQUIRED_DEFEATS} trainers defeated.`;
+    }
+
+    return 'Press E to challenge the Champion!';
+  }
+
+  private tryChallengeChampionArena(): void {
+    if (!this.player || !this.isPlayerNearChampionArena()) {
+      return;
+    }
+
+    const defeatedCount = this.getDefeatedGeneratedTrainerCount();
+    if (defeatedCount < CHAMPION_GATE_REQUIRED_DEFEATS) {
+      this.showDialogueBubble(
+        `Champion Gate sealed. Defeat ${CHAMPION_GATE_REQUIRED_DEFEATS - defeatedCount} more trainer(s).`,
+        this.player.x,
+        this.player.y - 52
+      );
+      return;
+    }
+
+    const championSeed = `${this.playerState.worldSeed}:champion-arena`;
+    const championRng = new SeededRng(championSeed);
+    const championNamePool = ['Champion Ione', 'Champion Rhea', 'Champion Kael'];
+    const speciesPool = ['emberfox', 'sparko', 'leafling'];
+
+    const championParty: string[] = [];
+    const availableSpecies = [...speciesPool];
+    while (championParty.length < 3 && availableSpecies.length > 0) {
+      const index = championRng.nextInt(0, availableSpecies.length - 1);
+      const [pickedSpecies] = availableSpecies.splice(index, 1);
+      championParty.push(pickedSpecies);
+    }
+
+    updatePlayerPosition(this.player.x, this.player.y);
+    persistPlayerState();
+    this.scene.start('BattleScene', {
+      player: {
+        name: this.playerState?.name ?? 'You',
+        party: this.playerState?.party ?? [],
+      },
+      opponent: {
+        id: this.getChampionTrainerId(),
+        name: championRng.pick(championNamePool),
+        party: championParty,
+        defeated: this.defeatedTrainerIds.has(this.getChampionTrainerId()),
+      },
+    });
+  }
+
+  private getChampionTrainerId(): string {
+    return `generated-champion-${this.playerState.worldSeed}`;
+  }
+
+  private renderChampionArenaMarker(position: Phaser.Math.Vector2): void {
+    const marker = this.add.star(
+      position.x,
+      position.y,
+      6,
+      this.tileSize * 0.25,
+      this.tileSize * 0.6,
+      0xe11d48,
+      0.95
+    );
+    marker.setDepth(2);
+
+    this.tweens.add({
+      targets: marker,
+      scale: 1.12,
+      alpha: 0.55,
+      duration: 580,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
   }
 
 

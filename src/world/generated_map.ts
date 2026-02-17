@@ -2,6 +2,7 @@ import { SeededRng } from './seeded_rng.js';
 
 export const DEFAULT_GENERATED_MAP_WIDTH = 128;
 export const DEFAULT_GENERATED_MAP_HEIGHT = 128;
+export const CHAMPION_GATE_REQUIRED_DEFEATS = 6;
 
 export type BiomeId = 'grassland' | 'forest' | 'rocky' | 'lake';
 export const GENERATED_MAP_BIOMES: BiomeId[] = ['grassland', 'forest', 'rocky', 'lake'];
@@ -93,7 +94,7 @@ export interface GenerateMapOptions {
 }
 
 const MAX_GENERATION_ATTEMPTS = 10;
-const MIN_REACHABLE_TRAINERS = 3;
+const MIN_REACHABLE_TRAINERS = CHAMPION_GATE_REQUIRED_DEFEATS;
 
 export function generateMapFromSeed(
   seed: string | number,
@@ -190,7 +191,11 @@ function generateMapFromAttemptSeed(
   }, walkableTileKeys, usedPointCoordinates, 3);
   registerPoint(healPoint);
 
-  const trainerCount = Math.max(1, options.trainerCount ?? 10);
+  const trainerCount = Math.max(
+    1,
+    CHAMPION_GATE_REQUIRED_DEFEATS,
+    options.trainerCount ?? 10
+  );
   const signCount = Math.max(1, options.signCount ?? 4);
 
   const routeLikeWalkableKeys = collectWalkableTileKeysByNeighborCount(

@@ -179,8 +179,8 @@ Done when: there’s a reason to wander beyond the main route.
 
 ### 7.2 Add lightweight gating for the “end”
 - [x] Place a “Champion Arena” area at the far end of the main path. (this commit)
-- [ ] Add a simple gate condition (e.g. defeat N trainers) before arena battle.
-- [ ] Ensure the map generator always places enough trainers to satisfy the gate.
+- [x] Add a simple gate condition (e.g. defeat N trainers) before arena battle. (this commit)
+- [x] Ensure the map generator always places enough trainers to satisfy the gate. (this commit)
 
 Done when: the procedural map supports a full run with a clear objective.
 
