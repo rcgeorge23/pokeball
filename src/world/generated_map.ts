@@ -146,17 +146,11 @@ export function generateMapFromSeed(
   });
 
   const biomeIds = GENERATED_MAP_BIOMES;
-  const biomeByTile: BiomeId[] = [];
+  const biomeByTile = buildBiomeByTile(seed, width, height, playerStart, biomeIds, toIndex);
   const difficultyBandByTile: DifficultyBand[] = [];
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = toIndex(x, y);
-      const xRatio = x / Math.max(1, width - 1);
-      const yRatio = y / Math.max(1, height - 1);
-      const regionNoise = rng.nextFloat() * 0.18 - 0.09;
-      const biomeIndex = clamp(Math.floor((xRatio + yRatio + regionNoise) * 2), 0, biomeIds.length - 1);
-      biomeByTile[index] = biomeIds[biomeIndex];
-
       const distanceFromSpawn = Math.hypot(x - playerStart.x, y - playerStart.y);
       const normalizedDistance = distanceFromSpawn / Math.max(width, height);
       if (normalizedDistance < 0.2) {
@@ -187,6 +181,88 @@ export function generateMapFromSeed(
       navigationGraph,
     },
   };
+}
+
+function buildBiomeByTile(
+  seed: string | number,
+  width: number,
+  height: number,
+  playerStart: MapPoint,
+  biomeIds: BiomeId[],
+  toIndex: (x: number, y: number) => number
+): BiomeId[] {
+  const biomeRng = new SeededRng(`${seed}-biome-regions`);
+  const regionPointCount = Math.max(6, biomeIds.length * 2);
+  const regionPoints = Array.from({ length: regionPointCount }, (_, index) => {
+    const angle = (index / regionPointCount) * Math.PI * 2;
+    const radius = Math.min(width, height) * (0.18 + biomeRng.nextFloat() * 0.32);
+    const x = clamp(
+      Math.round(playerStart.x + Math.cos(angle) * radius + biomeRng.nextInt(-8, 8)),
+      1,
+      width - 2
+    );
+    const y = clamp(
+      Math.round(playerStart.y + Math.sin(angle) * radius + biomeRng.nextInt(-8, 8)),
+      1,
+      height - 2
+    );
+
+    return {
+      x,
+      y,
+      biome: biomeIds[index % biomeIds.length],
+    };
+  });
+
+  const biomeByTile: BiomeId[] = [];
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const rankedRegions = regionPoints
+        .map((region) => ({
+          region,
+          distance: Math.hypot(x - region.x, y - region.y),
+        }))
+        .sort((left, right) => left.distance - right.distance);
+
+      const nearest = rankedRegions[0];
+      const secondary = rankedRegions[1] ?? nearest;
+      const index = toIndex(x, y);
+
+      const blendWidth = 5.5;
+      const distanceDelta = secondary.distance - nearest.distance;
+      const inBlendBand = distanceDelta < blendWidth;
+      if (!inBlendBand) {
+        biomeByTile[index] = nearest.region.biome;
+        continue;
+      }
+
+      const blendRatio = clamp((blendWidth - distanceDelta) / blendWidth, 0, 1);
+      const coordinateNoise = coordinateRandom(seed, x, y);
+      biomeByTile[index] = coordinateNoise < blendRatio
+        ? secondary.region.biome
+        : nearest.region.biome;
+    }
+  }
+
+  return biomeByTile;
+}
+
+function coordinateRandom(seed: string | number, x: number, y: number): number {
+  const seedValue = String(seed);
+  let hash = 2166136261;
+
+  for (let index = 0; index < seedValue.length; index += 1) {
+    hash ^= seedValue.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  hash ^= x;
+  hash = Math.imul(hash, 16777619);
+  hash ^= y;
+  hash = Math.imul(hash, 16777619);
+
+  return ((hash >>> 0) % 10000) / 10000;
 }
 
 function carveNavigationRoutes(

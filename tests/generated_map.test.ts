@@ -187,3 +187,30 @@ test('generateMapFromSeed keeps all walkable tiles connected to player start', (
     }
   }
 });
+
+test('generateMapFromSeed assigns deterministic biome regions with blended borders', () => {
+  const map = generateMapFromSeed('biome-region-seed', { width: 52, height: 40 });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const uniqueBiomes = new Set(map.metadata.biomeByTile);
+
+  assert.ok(uniqueBiomes.size >= 3);
+
+  let transitionTileCount = 0;
+  for (let y = 1; y < map.height - 1; y += 1) {
+    for (let x = 1; x < map.width - 1; x += 1) {
+      const tileBiome = map.metadata.biomeByTile[toIndex(x, y)];
+      const neighborBiomes = [
+        map.metadata.biomeByTile[toIndex(x - 1, y)],
+        map.metadata.biomeByTile[toIndex(x + 1, y)],
+        map.metadata.biomeByTile[toIndex(x, y - 1)],
+        map.metadata.biomeByTile[toIndex(x, y + 1)],
+      ];
+
+      if (neighborBiomes.some((neighborBiome) => neighborBiome !== tileBiome)) {
+        transitionTileCount += 1;
+      }
+    }
+  }
+
+  assert.ok(transitionTileCount > Math.floor(map.width * map.height * 0.08));
+});
