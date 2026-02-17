@@ -156,12 +156,12 @@ Done when: spawns are always safe and sensible.
 Done when: the map supports progression and teaches navigation.
 
 ### 6.2 Procedural trainer roster generation (data-driven)
-- [ ] Add a generator that creates trainer instances from templates:
-  - [ ] name pool
-  - [ ] party composition constraints
-  - [ ] difficulty scaling by distance / zone
-- [ ] Keep a stable trainer id derivation from seed + index so defeat persistence still works.
-- [ ] Ensure rematch rules keep working across reloads.
+- [x] Add a generator that creates trainer instances from templates. (this commit)
+  - [x] name pool (this commit)
+  - [x] party composition constraints (this commit)
+  - [x] difficulty scaling by distance / zone (this commit)
+- [x] Keep a stable trainer id derivation from seed + index so defeat persistence still works. (this commit)
+- [x] Ensure rematch rules keep working across reloads. (this commit)
 
 Done when: trainers are varied, reproducible, and persistently defeatable.
 

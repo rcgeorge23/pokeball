@@ -15,6 +15,7 @@ import {
 } from '../player/player_model';
 import { deriveJoystickDirection } from '../world/joystick_input';
 import { generateMapFromSeed } from '../world/generated_map';
+import { generateProceduralTrainerData } from '../world/procedural_trainer_generator';
 import { renderGeneratedMap } from '../world/generated_map_renderer';
 
 export class WorldScene extends Phaser.Scene {
@@ -110,11 +111,14 @@ export class WorldScene extends Phaser.Scene {
       Phaser.Input.Keyboard.KeyCodes.E
     );
 
-    const trainerData = this.buildGeneratedTrainerData(
-      (this.cache.json.get('trainers') ?? []) as TrainerDefinition[],
-      generatedMap.spawnPoints.trainers,
-      tileSize
-    );
+    const trainerData = generateProceduralTrainerData({
+      worldSeed: this.playerState.worldSeed,
+      trainerTemplates: (this.cache.json.get('trainers') ?? []) as TrainerDefinition[],
+      trainerPoints: generatedMap.spawnPoints.trainers,
+      tileSize,
+      width: generatedMap.width,
+      difficultyBandByTile: generatedMap.metadata.difficultyBandByTile,
+    });
     this.npcController = new NpcController(this, trainerData);
     this.npcController.setDefeatedTrainerIds(this.playerState.defeatedTrainerIds);
 
@@ -408,32 +412,6 @@ export class WorldScene extends Phaser.Scene {
     return messages[index % messages.length];
   }
 
-
-  private buildGeneratedTrainerData(
-    trainerTemplates: TrainerDefinition[],
-    trainerPoints: Array<{ x: number; y: number }>,
-    tileSize: number
-  ): TrainerDefinition[] {
-    const fallbackTemplate: TrainerDefinition = {
-      id: 'trainer-template-fallback',
-      name: 'Wanderer',
-      party: ['leafling'],
-      behavior: 'stationary',
-      x: 0,
-      y: 0,
-    };
-
-    return trainerPoints.map((point, index) => {
-      const template = trainerTemplates[index % Math.max(1, trainerTemplates.length)] ?? fallbackTemplate;
-      const id = `generated-trainer-${index}`;
-      return {
-        ...template,
-        id,
-        x: point.x * tileSize + tileSize / 2,
-        y: point.y * tileSize + tileSize / 2,
-      };
-    });
-  }
 
   private createTouchControls(): void {
     const joystickElement = document.getElementById('joystick');
