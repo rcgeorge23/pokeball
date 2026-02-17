@@ -114,7 +114,7 @@ Done when: the world has at least 2 interactive non-battle objects.
 - [ ] On level up:
   - [x] increase stats by small increments (commit in this commit)
   - [x] heal a little or not (your choice, but be consistent) (commit in this commit)
-  - [ ] Show “Level Up!” in battle log and in post-battle summary.
+  - [x] Show “Level Up!” in battle log and in post-battle summary. (commit in this commit)
 
 Done when: Pokémon grow stronger and it’s visible.
 
