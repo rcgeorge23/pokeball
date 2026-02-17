@@ -216,11 +216,11 @@ Done when: generator can evolve without breaking saves unexpectedly.
 Done when: determinism is provable and regressions are caught.
 
 ### 9.2 Playability tests
-- [ ] Generated map always:
-  - [ ] has a connected path start → end
-  - [ ] has required POIs reachable
-  - [ ] has at least N trainers reachable
-- [ ] Validate generation completes under a time budget (basic performance guard).
+- [x] Generated map always: (this commit)
+  - [x] has a connected path start → end (this commit)
+  - [x] has required POIs reachable (this commit)
+  - [x] has at least N trainers reachable (this commit)
+- [x] Validate generation completes under a time budget (basic performance guard). (this commit)
 
 Done when: “bad seeds” don’t ship and perf stays acceptable.
 
