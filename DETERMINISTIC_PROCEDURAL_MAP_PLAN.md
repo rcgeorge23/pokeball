@@ -99,7 +99,7 @@ Done when: the world feels shaped, and traversal choices exist.
 ## Milestone 4: Biomes and variation (still deterministic)
 
 ### 4.1 Biome assignment (simple, readable rules)
-- [ ] Define 3–4 biomes (e.g. grass, forest, rocky, lake).
+- [x] Define 3–4 biomes (e.g. grass, forest, rocky, lake). (this commit)
 - [ ] Assign biomes by region using deterministic rules:
   - [ ] e.g. distance from start, or partition map into Voronoi-like regions using seeded points
 - [ ] Ensure biome borders are blended (avoid harsh rectangles).

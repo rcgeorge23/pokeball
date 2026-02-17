@@ -3,6 +3,9 @@ import { SeededRng } from './seeded_rng.js';
 export const DEFAULT_GENERATED_MAP_WIDTH = 128;
 export const DEFAULT_GENERATED_MAP_HEIGHT = 128;
 
+export type BiomeId = 'grassland' | 'forest' | 'rocky' | 'lake';
+export const GENERATED_MAP_BIOMES: BiomeId[] = ['grassland', 'forest', 'rocky', 'lake'];
+
 export type TileId = 'grass' | 'obstacle';
 export type DifficultyBand = 'early' | 'mid' | 'late';
 export type NavigationNodeType =
@@ -26,8 +29,8 @@ export interface GeneratedMapSpawnPoints {
 }
 
 export interface GeneratedMapMetadata {
-  biomeIds: string[];
-  biomeByTile: string[];
+  biomeIds: BiomeId[];
+  biomeByTile: BiomeId[];
   difficultyBandByTile: DifficultyBand[];
   navigationGraph: GeneratedMapNavigationGraph;
 }
@@ -142,8 +145,8 @@ export function generateMapFromSeed(
     return signPoint;
   });
 
-  const biomeIds = ['grassland', 'forest', 'rocky', 'lake'];
-  const biomeByTile: string[] = [];
+  const biomeIds = GENERATED_MAP_BIOMES;
+  const biomeByTile: BiomeId[] = [];
   const difficultyBandByTile: DifficultyBand[] = [];
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
