@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  CHAMPION_GATE_REQUIRED_DEFEATS,
   DEFAULT_GENERATED_MAP_HEIGHT,
   DEFAULT_GENERATED_MAP_WIDTH,
   GENERATED_MAP_BIOMES,
@@ -488,4 +489,63 @@ test('generateMapFromSeed places deterministic POIs along optional route branche
 
     assert.ok(nearestOptionalNodeDistance <= 20);
   }
+});
+
+
+test('generateMapFromSeed enforces trainer count large enough for the champion gate', () => {
+  const map = generateMapFromSeed('champion-gate-trainer-count-seed', {
+    width: 48,
+    height: 36,
+    trainerCount: 2,
+  });
+
+  assert.ok(map.spawnPoints.trainers.length >= CHAMPION_GATE_REQUIRED_DEFEATS);
+});
+
+test('generateMapFromSeed keeps enough reachable trainers to satisfy the champion gate', () => {
+  const map = generateMapFromSeed('champion-gate-reachability-seed', {
+    width: 64,
+    height: 48,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const startIndex = toIndex(map.spawnPoints.playerStart.x, map.spawnPoints.playerStart.y);
+
+  const visited = new Set<number>([startIndex]);
+  const queue = [startIndex];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % map.width;
+    const y = Math.floor(current / map.width);
+    const neighbors = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+    ];
+
+    for (const [nextX, nextY] of neighbors) {
+      if (nextX < 0 || nextX >= map.width || nextY < 0 || nextY >= map.height) {
+        continue;
+      }
+
+      const nextIndex = toIndex(nextX, nextY);
+      if (map.collision[nextIndex] || visited.has(nextIndex)) {
+        continue;
+      }
+
+      visited.add(nextIndex);
+      queue.push(nextIndex);
+    }
+  }
+
+  const reachableTrainerCount = map.spawnPoints.trainers.filter((trainerPoint) =>
+    visited.has(toIndex(trainerPoint.x, trainerPoint.y))
+  ).length;
+
+  assert.ok(reachableTrainerCount >= CHAMPION_GATE_REQUIRED_DEFEATS);
 });
