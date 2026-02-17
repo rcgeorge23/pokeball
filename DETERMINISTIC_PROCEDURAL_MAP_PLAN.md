@@ -121,12 +121,12 @@ Done when: the map has memorable visual features beyond paths.
 This milestone prevents frustrating maps.
 
 ### 5.1 Connectivity validation
-- [ ] After generation, run a flood-fill/BFS from player spawn over walkable tiles.
-- [ ] Verify required points are reachable:
-  - [ ] at minimum: at least N trainers, heal point, and end/champion arena placeholder
-- [ ] If validation fails:
-  - [ ] regenerate using the same seed + deterministic “attempt index”
-  - [ ] cap attempts (e.g. 10) and log failures in dev mode
+- [x] After generation, run a flood-fill/BFS from player spawn over walkable tiles. (this commit)
+- [x] Verify required points are reachable: (this commit)
+  - [x] at minimum: at least N trainers, heal point, and end/champion arena placeholder (this commit)
+- [x] If validation fails: (this commit)
+  - [x] regenerate using the same seed + deterministic “attempt index” (this commit)
+  - [x] cap attempts (e.g. 10) and log failures in dev mode (this commit)
 
 Done when: every seed yields a playable world.
 

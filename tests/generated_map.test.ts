@@ -249,3 +249,67 @@ test('generateMapFromSeed keeps all walkable tiles connected to player start', (
     }
   }
 });
+
+test('generateMapFromSeed keeps required progression points reachable from spawn', () => {
+  const map = generateMapFromSeed('playability-validation-seed', {
+    width: 64,
+    height: 48,
+    trainerCount: 8,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const start = map.spawnPoints.playerStart;
+  const startIndex = toIndex(start.x, start.y);
+
+  assert.equal(map.collision[startIndex], false);
+
+  const visited = new Set<number>();
+  const queue = [startIndex];
+  visited.add(startIndex);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % map.width;
+    const y = Math.floor(current / map.width);
+    const neighbors = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+    ];
+
+    for (const [nextX, nextY] of neighbors) {
+      if (nextX < 0 || nextX >= map.width || nextY < 0 || nextY >= map.height) {
+        continue;
+      }
+
+      const nextIndex = toIndex(nextX, nextY);
+      if (map.collision[nextIndex] || visited.has(nextIndex)) {
+        continue;
+      }
+
+      visited.add(nextIndex);
+      queue.push(nextIndex);
+    }
+  }
+
+  const healPointIndex = toIndex(map.spawnPoints.healPoint.x, map.spawnPoints.healPoint.y);
+  assert.ok(visited.has(healPointIndex));
+
+  const championArenaNode = map.metadata.navigationGraph.nodes.find((node) => node.type === 'championArena');
+  assert.ok(championArenaNode);
+  if (!championArenaNode) {
+    throw new Error('Expected champion arena node to exist.');
+  }
+
+  assert.ok(visited.has(toIndex(championArenaNode.x, championArenaNode.y)));
+
+  const reachableTrainerCount = map.spawnPoints.trainers.filter((trainerPoint) =>
+    visited.has(toIndex(trainerPoint.x, trainerPoint.y))
+  ).length;
+
+  assert.ok(reachableTrainerCount >= 3);
+});
