@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import { GeneratedMap, TileId } from './generated_map.js';
+import { DecorationId, GeneratedMap, TileId } from './generated_map.js';
 
 const GENERATED_TILESET_KEY = 'generated-map-tileset';
 const GENERATED_TILE_SIZE = 16;
@@ -8,6 +8,16 @@ const GENERATED_TILE_SIZE = 16;
 const TILE_INDEX_BY_ID: Record<TileId, number> = {
   grass: 0,
   obstacle: 1,
+};
+
+const DECORATION_TILE_INDEX_BY_ID: Record<DecorationId, number> = {
+  grassTuft: 2,
+  flower: 3,
+  smallRock: 4,
+  bigTree: 5,
+  ruin: 6,
+  stoneRing: 7,
+  reedCluster: 8,
 };
 
 export interface GeneratedMapRenderResult {
@@ -36,14 +46,17 @@ export function renderGeneratedMap(
   }
 
   const tileRows = toTileRows(generatedMap);
+  const decorationRows = toDecorationRows(generatedMap);
   const groundLayer = tilemap.createBlankLayer('Ground', mapTileset, 0, 0);
+  const decorationLayer = tilemap.createBlankLayer('Decoration', mapTileset, 0, 0);
   const collisionLayer = tilemap.createBlankLayer('Collision', mapTileset, 0, 0);
 
-  if (!groundLayer || !collisionLayer) {
+  if (!groundLayer || !collisionLayer || !decorationLayer) {
     throw new Error('Unable to create generated map tile layers.');
   }
 
   groundLayer.putTilesAt(tileRows, 0, 0);
+  decorationLayer.putTilesAt(decorationRows, 0, 0);
 
   collisionLayer.putTilesAt(tileRows, 0, 0);
   collisionLayer.setVisible(false);
@@ -55,6 +68,23 @@ export function renderGeneratedMap(
     worldHeight: tilemap.heightInPixels,
     tileSize: GENERATED_TILE_SIZE,
   };
+}
+
+function toDecorationRows(generatedMap: GeneratedMap): number[][] {
+  const rows: number[][] = [];
+
+  for (let y = 0; y < generatedMap.height; y += 1) {
+    const row: number[] = [];
+    for (let x = 0; x < generatedMap.width; x += 1) {
+      const index = y * generatedMap.width + x;
+      const decorationId = generatedMap.metadata.decorationByTile[index];
+      row.push(decorationId ? DECORATION_TILE_INDEX_BY_ID[decorationId] : -1);
+    }
+
+    rows.push(row);
+  }
+
+  return rows;
 }
 
 function toTileRows(generatedMap: GeneratedMap): number[][] {
@@ -97,9 +127,30 @@ function ensureGeneratedTilesetTexture(scene: Phaser.Scene): void {
     GENERATED_TILE_SIZE
   );
 
+  graphics.fillStyle(0x3f9b57, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 2, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0xfacc15, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 3, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0x9ca3af, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 4, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0x166534, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 5, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0x92400e, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 6, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0x6b7280, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 7, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
+  graphics.fillStyle(0x0ea5a4, 1);
+  graphics.fillRect(GENERATED_TILE_SIZE * 8, 0, GENERATED_TILE_SIZE, GENERATED_TILE_SIZE);
+
   graphics.generateTexture(
     GENERATED_TILESET_KEY,
-    GENERATED_TILE_SIZE * 2,
+    GENERATED_TILE_SIZE * 9,
     GENERATED_TILE_SIZE
   );
   graphics.destroy();

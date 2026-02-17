@@ -7,6 +7,14 @@ export type BiomeId = 'grassland' | 'forest' | 'rocky' | 'lake';
 export const GENERATED_MAP_BIOMES: BiomeId[] = ['grassland', 'forest', 'rocky', 'lake'];
 
 export type TileId = 'grass' | 'obstacle';
+export type DecorationId =
+  | 'grassTuft'
+  | 'flower'
+  | 'smallRock'
+  | 'bigTree'
+  | 'ruin'
+  | 'stoneRing'
+  | 'reedCluster';
 export type DifficultyBand = 'early' | 'mid' | 'late';
 export type NavigationNodeType =
   | 'start'
@@ -32,6 +40,8 @@ export interface GeneratedMapMetadata {
   biomeIds: BiomeId[];
   biomeByTile: BiomeId[];
   difficultyBandByTile: DifficultyBand[];
+  decorationByTile: Array<DecorationId | null>;
+  biomeLandmarks: Array<{ biomeId: BiomeId; x: number; y: number; decoration: DecorationId }>;
   navigationGraph: GeneratedMapNavigationGraph;
 }
 
@@ -147,6 +157,18 @@ export function generateMapFromSeed(
 
   const biomeIds = GENERATED_MAP_BIOMES;
   const biomeByTile = assignBiomesByRegion(seed, width, height, biomeIds);
+  const decorationByTile = applyDecorations(seed, width, height, collision, biomeByTile, {
+    playerStart,
+    healPoint,
+    trainers,
+    signs,
+  });
+  const biomeLandmarks = placeBiomeLandmarks(seed, width, height, collision, biomeByTile, decorationByTile, {
+    playerStart,
+    healPoint,
+    trainers,
+    signs,
+  });
   const difficultyBandByTile: DifficultyBand[] = [];
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -178,9 +200,152 @@ export function generateMapFromSeed(
       biomeIds,
       biomeByTile,
       difficultyBandByTile,
+      decorationByTile,
+      biomeLandmarks,
       navigationGraph,
     },
   };
+}
+
+function applyDecorations(
+  seed: string | number,
+  width: number,
+  height: number,
+  collision: boolean[],
+  biomeByTile: BiomeId[],
+  spawnPoints: GeneratedMapSpawnPoints
+): Array<DecorationId | null> {
+  const decorationByTile: Array<DecorationId | null> = Array.from({ length: width * height }, () => null);
+  const decorationRng = new SeededRng(`decorations:${String(seed)}`);
+  const protectedKeys = createProtectedPointKeys(spawnPoints);
+
+  const toIndex = (x: number, y: number): number => y * width + x;
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const tileIndex = toIndex(x, y);
+      if (collision[tileIndex] || protectedKeys.has(`${x},${y}`)) {
+        continue;
+      }
+
+      const biome = biomeByTile[tileIndex];
+      const spawnChanceByBiome: Record<BiomeId, number> = {
+        grassland: 0.052,
+        forest: 0.065,
+        rocky: 0.045,
+        lake: 0.04,
+      };
+
+      if (decorationRng.nextFloat() > spawnChanceByBiome[biome]) {
+        continue;
+      }
+
+      const decorationPoolByBiome: Record<BiomeId, DecorationId[]> = {
+        grassland: ['grassTuft', 'flower'],
+        forest: ['grassTuft', 'flower', 'bigTree'],
+        rocky: ['smallRock', 'stoneRing'],
+        lake: ['reedCluster', 'flower', 'grassTuft'],
+      };
+
+      decorationByTile[tileIndex] = decorationRng.pick(decorationPoolByBiome[biome]);
+    }
+  }
+
+  return decorationByTile;
+}
+
+function placeBiomeLandmarks(
+  seed: string | number,
+  width: number,
+  height: number,
+  collision: boolean[],
+  biomeByTile: BiomeId[],
+  decorationByTile: Array<DecorationId | null>,
+  spawnPoints: GeneratedMapSpawnPoints
+): Array<{ biomeId: BiomeId; x: number; y: number; decoration: DecorationId }> {
+  const toIndex = (x: number, y: number): number => y * width + x;
+  const protectedKeys = createProtectedPointKeys(spawnPoints);
+  const landmarkRng = new SeededRng(`landmarks:${String(seed)}`);
+  const landmarkByBiome: Record<BiomeId, DecorationId> = {
+    grassland: 'flower',
+    forest: 'bigTree',
+    rocky: 'ruin',
+    lake: 'reedCluster',
+  };
+  const landmarks: Array<{ biomeId: BiomeId; x: number; y: number; decoration: DecorationId }> = [];
+
+  for (const biomeId of GENERATED_MAP_BIOMES) {
+    const candidates: MapPoint[] = [];
+
+    for (let y = 2; y < height - 2; y += 1) {
+      for (let x = 2; x < width - 2; x += 1) {
+        const key = `${x},${y}`;
+        const index = toIndex(x, y);
+        if (collision[index] || biomeByTile[index] !== biomeId || protectedKeys.has(key)) {
+          continue;
+        }
+
+        candidates.push({ x, y });
+      }
+    }
+
+    if (candidates.length === 0) {
+      continue;
+    }
+
+    const center = candidates[landmarkRng.nextInt(0, candidates.length - 1)];
+    const landmarkDecoration = landmarkByBiome[biomeId];
+    const shapeRadius = biomeId === 'forest' ? 2 : 1;
+
+    for (let offsetY = -shapeRadius; offsetY <= shapeRadius; offsetY += 1) {
+      for (let offsetX = -shapeRadius; offsetX <= shapeRadius; offsetX += 1) {
+        const x = clamp(center.x + offsetX, 1, width - 2);
+        const y = clamp(center.y + offsetY, 1, height - 2);
+        const key = `${x},${y}`;
+        const index = toIndex(x, y);
+
+        if (
+          collision[index] ||
+          biomeByTile[index] !== biomeId ||
+          protectedKeys.has(key)
+        ) {
+          continue;
+        }
+
+        decorationByTile[index] = landmarkDecoration;
+      }
+    }
+
+    landmarks.push({
+      biomeId,
+      x: center.x,
+      y: center.y,
+      decoration: landmarkDecoration,
+    });
+  }
+
+  return landmarks;
+}
+
+function createProtectedPointKeys(spawnPoints: GeneratedMapSpawnPoints): Set<string> {
+  const protectedKeys = new Set<string>();
+  const reservePoint = (point: MapPoint): void => {
+    for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+      for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+        protectedKeys.add(`${point.x + offsetX},${point.y + offsetY}`);
+      }
+    }
+  };
+
+  reservePoint(spawnPoints.playerStart);
+  reservePoint(spawnPoints.healPoint);
+  for (const point of spawnPoints.trainers) {
+    reservePoint(point);
+  }
+  for (const point of spawnPoints.signs) {
+    reservePoint(point);
+  }
+
+  return protectedKeys;
 }
 
 function assignBiomesByRegion(

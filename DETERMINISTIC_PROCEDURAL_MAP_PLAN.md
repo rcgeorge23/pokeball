@@ -107,10 +107,10 @@ Done when: the world feels shaped, and traversal choices exist.
 Done when: different areas look and feel distinct.
 
 ### 4.2 Biome decoration pass (visual interest)
-- [ ] Add a decoration layer (non-colliding) for visual variety:
-  - [ ] grass tufts, flowers, small rocks, etc.
-- [ ] Ensure decoration placement is seeded and sparse enough to keep performance stable.
-- [ ] Add at least one “landmark” tile cluster per biome (e.g. big tree, ruin).
+- [x] Add a decoration layer (non-colliding) for visual variety: (this commit)
+  - [x] grass tufts, flowers, small rocks, etc. (this commit)
+- [x] Ensure decoration placement is seeded and sparse enough to keep performance stable. (this commit)
+- [x] Add at least one “landmark” tile cluster per biome (e.g. big tree, ruin). (this commit)
 
 Done when: the map has memorable visual features beyond paths.
 

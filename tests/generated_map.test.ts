@@ -17,7 +17,9 @@ test('generateMapFromSeed returns a complete generated map structure', () => {
   assert.equal(map.collision.length, map.width * map.height);
   assert.equal(map.metadata.biomeByTile.length, map.width * map.height);
   assert.equal(map.metadata.difficultyBandByTile.length, map.width * map.height);
+  assert.equal(map.metadata.decorationByTile.length, map.width * map.height);
   assert.deepEqual(map.metadata.biomeIds, GENERATED_MAP_BIOMES);
+  assert.ok(map.metadata.biomeLandmarks.length > 0);
   assert.ok(map.metadata.navigationGraph.nodes.length >= 10);
   assert.ok(map.metadata.navigationGraph.edges.length > 0);
   assert.ok(map.spawnPoints.trainers.length > 0);
@@ -114,6 +116,24 @@ test('generateMapFromSeed assigns deterministic biome regions with blended borde
   }
 
   assert.ok(biomeTransitions.size >= 3);
+});
+
+test('generateMapFromSeed places sparse deterministic decorations and biome landmarks', () => {
+  const map = generateMapFromSeed('biome-decoration-seed', { width: 64, height: 48 });
+  const mapRepeat = generateMapFromSeed('biome-decoration-seed', { width: 64, height: 48 });
+
+  assert.deepEqual(map.metadata.decorationByTile, mapRepeat.metadata.decorationByTile);
+  assert.deepEqual(map.metadata.biomeLandmarks, mapRepeat.metadata.biomeLandmarks);
+
+  const decoratedTiles = map.metadata.decorationByTile.filter((value) => value !== null).length;
+  const totalTiles = map.width * map.height;
+  assert.ok(decoratedTiles > Math.floor(totalTiles * 0.01));
+  assert.ok(decoratedTiles < Math.floor(totalTiles * 0.2));
+
+  const landmarksByBiome = new Set(map.metadata.biomeLandmarks.map((landmark) => landmark.biomeId));
+  for (const biomeId of GENERATED_MAP_BIOMES) {
+    assert.ok(landmarksByBiome.has(biomeId));
+  }
 });
 
 test('generateMapFromSeed carves walkable routes for navigation graph nodes', () => {
