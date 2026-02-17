@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_GENERATED_MAP_HEIGHT,
   DEFAULT_GENERATED_MAP_WIDTH,
+  GENERATED_MAP_BIOMES,
   generateMapFromSeed,
 } from '../src/world/generated_map.js';
 
@@ -16,7 +17,7 @@ test('generateMapFromSeed returns a complete generated map structure', () => {
   assert.equal(map.collision.length, map.width * map.height);
   assert.equal(map.metadata.biomeByTile.length, map.width * map.height);
   assert.equal(map.metadata.difficultyBandByTile.length, map.width * map.height);
-  assert.ok(map.metadata.biomeIds.length >= 3);
+  assert.deepEqual(map.metadata.biomeIds, GENERATED_MAP_BIOMES);
   assert.ok(map.metadata.navigationGraph.nodes.length >= 10);
   assert.ok(map.metadata.navigationGraph.edges.length > 0);
   assert.ok(map.spawnPoints.trainers.length > 0);
