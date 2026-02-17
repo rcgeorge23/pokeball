@@ -134,3 +134,82 @@ test('generateMapFromSeed carves walkable routes for navigation graph nodes', ()
   const walkableTiles = map.collision.filter((isBlocked) => !isBlocked).length;
   assert.ok(walkableTiles > Math.floor(map.width * map.height * 0.15));
 });
+
+test('generateMapFromSeed keeps all walkable tiles connected to the player start', () => {
+  const map = generateMapFromSeed('connected-walkable-seed', { width: 52, height: 40 });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const start = map.spawnPoints.playerStart;
+  const visited = new Set<number>();
+  const queue = [toIndex(start.x, start.y)];
+  visited.add(queue[0]);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % map.width;
+    const y = Math.floor(current / map.width);
+    const neighbors = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+    ];
+
+    for (const [nextX, nextY] of neighbors) {
+      if (nextX < 0 || nextX >= map.width || nextY < 0 || nextY >= map.height) {
+        continue;
+      }
+
+      const nextIndex = toIndex(nextX, nextY);
+      if (map.collision[nextIndex] || visited.has(nextIndex)) {
+        continue;
+      }
+
+      visited.add(nextIndex);
+      queue.push(nextIndex);
+    }
+  }
+
+  const unvisitedWalkableTiles = map.collision.reduce((count, isBlocked, index) => {
+    if (isBlocked || visited.has(index)) {
+      return count;
+    }
+
+    return count + 1;
+  }, 0);
+
+  assert.equal(unvisitedWalkableTiles, 0);
+});
+
+test('generateMapFromSeed adds obstacle clusters that shape carved routes', () => {
+  const map = generateMapFromSeed('obstacle-cluster-seed', { width: 64, height: 48 });
+
+  let interiorObstacleTiles = 0;
+  for (let y = 1; y < map.height - 1; y += 1) {
+    for (let x = 1; x < map.width - 1; x += 1) {
+      const index = y * map.width + x;
+      if (!map.collision[index]) {
+        continue;
+      }
+
+      const neighborIndexes = [
+        (y - 1) * map.width + x,
+        (y + 1) * map.width + x,
+        y * map.width + (x - 1),
+        y * map.width + (x + 1),
+      ];
+      const adjacentWalkableCount = neighborIndexes.reduce((count, neighborIndex) => {
+        return map.collision[neighborIndex] ? count : count + 1;
+      }, 0);
+
+      if (adjacentWalkableCount >= 2) {
+        interiorObstacleTiles += 1;
+      }
+    }
+  }
+
+  assert.ok(interiorObstacleTiles > 0);
+});

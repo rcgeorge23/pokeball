@@ -22,9 +22,9 @@ Done when: the RNG is deterministic and unit-tested.
 ### 1.2 Save/restore seed in player state
 - [x] Extend player save state with:
   - [x] `worldSeed: string` (or number)
-  - [x] `worldVersion: number` (for future migrations) (this commit)
-- [x] On New Game: generate a seed and persist it. (this commit)
-- [x] On Continue: always reuse the persisted seed. (this commit)
+  - [x] `worldVersion: number` (for future migrations) (commit cdbfd9c)
+- [x] On New Game: generate a seed and persist it. (commit cdbfd9c)
+- [x] On Continue: always reuse the persisted seed. (commit cdbfd9c)
 - [x] Add a debug overlay (optional) to show current seed. (this commit)
 
 Done when: reloading recreates the exact same world from the saved seed.
@@ -88,9 +88,9 @@ Done when: every map has a consistent “journey” structure.
 Done when: the player can traverse a recognizable route network.
 
 ### 3.3 Add boundaries and obstacles that make sense
-- [ ] Fill non-walkable space with obstacle tiles (rocks/trees/walls).
-- [ ] Add occasional obstacle clusters that shape movement (not random peppering).
-- [ ] Ensure no enclosed unreachable areas unless intentionally marked as decoration.
+- [x] Fill non-walkable space with obstacle tiles (rocks/trees/walls). (this commit)
+- [x] Add occasional obstacle clusters that shape movement (not random peppering). (this commit)
+- [x] Ensure no enclosed unreachable areas unless intentionally marked as decoration. (this commit)
 
 Done when: the world feels shaped, and traversal choices exist.
 

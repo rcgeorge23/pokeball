@@ -109,6 +109,29 @@ export function generateMapFromSeed(
   };
   const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
   const walkableTileKeys = carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
+  const protectedWalkableTileKeys = buildProtectedWalkableTileKeys(navigationGraph);
+
+  applyObstacleClusters(
+    rng,
+    width,
+    height,
+    toIndex,
+    tiles,
+    collision,
+    walkableTileKeys,
+    protectedWalkableTileKeys,
+    playerStart
+  );
+  removeDisconnectedWalkableIslands(
+    width,
+    height,
+    toIndex,
+    tiles,
+    collision,
+    walkableTileKeys,
+    playerStart,
+    protectedWalkableTileKeys
+  );
 
   const usedPoints = new Set<string>();
   const registerPoint = (point: MapPoint): void => {
@@ -256,6 +279,233 @@ function carveNavigationRoutes(
   }
 
   return walkableTileKeys;
+}
+
+function applyObstacleClusters(
+  rng: SeededRng,
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[],
+  walkableTileKeys: Set<string>,
+  protectedWalkableTileKeys: Set<string>,
+  playerStart: MapPoint
+): void {
+  const desiredClusterCount = Math.max(2, Math.floor((width * height) / 600));
+  let clustersPlaced = 0;
+  let attempts = 0;
+
+  while (clustersPlaced < desiredClusterCount && attempts < desiredClusterCount * 10) {
+    attempts += 1;
+
+    const clusterCenter = {
+      x: rng.nextInt(2, width - 3),
+      y: rng.nextInt(2, height - 3),
+    };
+
+    const centerIndex = toIndex(clusterCenter.x, clusterCenter.y);
+    if (collision[centerIndex]) {
+      continue;
+    }
+
+    const centerKey = `${clusterCenter.x},${clusterCenter.y}`;
+    if (protectedWalkableTileKeys.has(centerKey)) {
+      continue;
+    }
+
+    const radius = rng.nextFloat() > 0.7 ? 2 : 1;
+    const pendingUpdates: number[] = [];
+
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        const x = clusterCenter.x + offsetX;
+        const y = clusterCenter.y + offsetY;
+        if (x <= 0 || x >= width - 1 || y <= 0 || y >= height - 1) {
+          continue;
+        }
+
+        const key = `${x},${y}`;
+        const tileIndex = toIndex(x, y);
+        const isWalkable = !collision[tileIndex];
+        const isNearClusterCenter = Math.abs(offsetX) + Math.abs(offsetY) <= radius + 1;
+
+        if (!isWalkable || !isNearClusterCenter || protectedWalkableTileKeys.has(key)) {
+          continue;
+        }
+
+        pendingUpdates.push(tileIndex);
+      }
+    }
+
+    if (pendingUpdates.length === 0) {
+      continue;
+    }
+
+    const changedKeys: string[] = [];
+    for (const tileIndex of pendingUpdates) {
+      const x = tileIndex % width;
+      const y = Math.floor(tileIndex / width);
+      const key = `${x},${y}`;
+      tiles[tileIndex] = 'obstacle';
+      collision[tileIndex] = true;
+      walkableTileKeys.delete(key);
+      changedKeys.push(key);
+    }
+
+    if (!areProtectedWalkableTilesReachable(width, height, toIndex, collision, playerStart, protectedWalkableTileKeys)) {
+      for (const key of changedKeys) {
+        const [xAsString, yAsString] = key.split(',');
+        const x = Number(xAsString);
+        const y = Number(yAsString);
+        const index = toIndex(x, y);
+        tiles[index] = 'grass';
+        collision[index] = false;
+        walkableTileKeys.add(key);
+      }
+      continue;
+    }
+
+    clustersPlaced += 1;
+  }
+}
+
+function areProtectedWalkableTilesReachable(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  playerStart: MapPoint,
+  protectedWalkableTileKeys: Set<string>
+): boolean {
+  const startIndex = toIndex(playerStart.x, playerStart.y);
+  if (collision[startIndex]) {
+    return false;
+  }
+
+  const visited = new Set<number>();
+  const queue = [startIndex];
+  visited.add(startIndex);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % width;
+    const y = Math.floor(current / width);
+    const neighbors: MapPoint[] = [
+      { x: x - 1, y },
+      { x: x + 1, y },
+      { x, y: y - 1 },
+      { x, y: y + 1 },
+    ];
+
+    for (const neighbor of neighbors) {
+      if (neighbor.x < 0 || neighbor.x >= width || neighbor.y < 0 || neighbor.y >= height) {
+        continue;
+      }
+
+      const neighborIndex = toIndex(neighbor.x, neighbor.y);
+      if (collision[neighborIndex] || visited.has(neighborIndex)) {
+        continue;
+      }
+
+      visited.add(neighborIndex);
+      queue.push(neighborIndex);
+    }
+  }
+
+  for (const key of protectedWalkableTileKeys) {
+    const [xAsString, yAsString] = key.split(',');
+    const x = Number(xAsString);
+    const y = Number(yAsString);
+    if (!visited.has(toIndex(x, y))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function removeDisconnectedWalkableIslands(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[],
+  walkableTileKeys: Set<string>,
+  playerStart: MapPoint,
+  protectedWalkableTileKeys: Set<string>
+): void {
+  for (const key of protectedWalkableTileKeys) {
+    const [xAsString, yAsString] = key.split(',');
+    const x = Number(xAsString);
+    const y = Number(yAsString);
+    const index = toIndex(x, y);
+    tiles[index] = 'grass';
+    collision[index] = false;
+    walkableTileKeys.add(key);
+  }
+
+  const startIndex = toIndex(playerStart.x, playerStart.y);
+
+  const visited = new Set<number>();
+  const queue = [startIndex];
+  visited.add(startIndex);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % width;
+    const y = Math.floor(current / width);
+    const neighbors: MapPoint[] = [
+      { x: x - 1, y },
+      { x: x + 1, y },
+      { x, y: y - 1 },
+      { x, y: y + 1 },
+    ];
+
+    for (const neighbor of neighbors) {
+      if (neighbor.x < 0 || neighbor.x >= width || neighbor.y < 0 || neighbor.y >= height) {
+        continue;
+      }
+
+      const neighborIndex = toIndex(neighbor.x, neighbor.y);
+      if (collision[neighborIndex] || visited.has(neighborIndex)) {
+        continue;
+      }
+
+      visited.add(neighborIndex);
+      queue.push(neighborIndex);
+    }
+  }
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = toIndex(x, y);
+      const key = `${x},${y}`;
+      if (collision[index] || visited.has(index) || protectedWalkableTileKeys.has(key)) {
+        continue;
+      }
+
+      tiles[index] = 'obstacle';
+      collision[index] = true;
+      walkableTileKeys.delete(key);
+    }
+  }
+}
+
+function buildProtectedWalkableTileKeys(
+  navigationGraph: GeneratedMapNavigationGraph
+): Set<string> {
+  return new Set(
+    navigationGraph.nodes.map((node) => `${node.x},${node.y}`)
+  );
 }
 
 function buildNavigationGraph(
