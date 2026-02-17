@@ -163,6 +163,7 @@ function generateMapFromAttemptSeed(
   const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
   carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
   applyObstacleClusters(rng, width, height, navigationGraph, playerStart, toIndex, tiles, collision);
+  carveChampionArenaArea(width, height, navigationGraph, toIndex, tiles, collision);
   ensureSingleReachableWalkableRegion(width, height, playerStart, toIndex, tiles, collision);
   const walkableTileKeys = collectWalkableTileKeys(width, height, toIndex, collision);
 
@@ -1250,6 +1251,39 @@ function buildNavigationGraph(
     edges,
     mainPathNodeIds: mainPathNodes.map((node) => node.id),
   };
+}
+
+function carveChampionArenaArea(
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const championNode = navigationGraph.nodes.find((node) => node.type === 'championArena');
+  if (!championNode) {
+    return;
+  }
+
+  const arenaRadius = 4;
+  for (let offsetY = -arenaRadius; offsetY <= arenaRadius; offsetY += 1) {
+    for (let offsetX = -arenaRadius; offsetX <= arenaRadius; offsetX += 1) {
+      const tileX = championNode.x + offsetX;
+      const tileY = championNode.y + offsetY;
+      if (tileX < 1 || tileX > width - 2 || tileY < 1 || tileY > height - 2) {
+        continue;
+      }
+
+      if (Math.hypot(offsetX, offsetY) > arenaRadius + 0.2) {
+        continue;
+      }
+
+      const tileIndex = toIndex(tileX, tileY);
+      tiles[tileIndex] = 'grass';
+      collision[tileIndex] = false;
+    }
+  }
 }
 
 function pickUniqueWalkablePoint(
