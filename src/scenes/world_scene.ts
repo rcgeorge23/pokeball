@@ -44,6 +44,8 @@ export class WorldScene extends Phaser.Scene {
   private copySeedButton?: HTMLButtonElement;
   private toggleCollisionButton?: HTMLButtonElement;
   private healPointWorldPosition?: Phaser.Math.Vector2;
+  private signposts: Array<{ position: Phaser.Math.Vector2; message: string }> = [];
+  private activeDialogueBubble?: Phaser.GameObjects.Text;
   private worldMessage = '';
   private worldMessageUntil = 0;
   private readonly isTouchDevice =
@@ -71,7 +73,15 @@ export class WorldScene extends Phaser.Scene {
       generatedMap.spawnPoints.healPoint.x * tileSize + tileSize / 2,
       generatedMap.spawnPoints.healPoint.y * tileSize + tileSize / 2
     );
+    this.signposts = generatedMap.spawnPoints.signs.map((signPoint, index) => ({
+      position: new Phaser.Math.Vector2(
+        signPoint.x * tileSize + tileSize / 2,
+        signPoint.y * tileSize + tileSize / 2
+      ),
+      message: this.getSignpostMessage(index),
+    }));
     this.renderHealPointMarker(this.healPointWorldPosition);
+    this.signposts.forEach((signpost) => this.renderSignpostMarker(signpost.position));
 
     const playerStartX = this.playerState.position?.x ?? generatedSpawnX;
     const playerStartY = this.playerState.position?.y ?? generatedSpawnY;
@@ -237,6 +247,8 @@ export class WorldScene extends Phaser.Scene {
         );
       } else if (nearHealPoint) {
         this.hintText.setText('Press E to heal your team');
+      } else if (this.getNearbySignpost()) {
+        this.hintText.setText('Press E to read sign');
       } else if (this.worldMessageUntil > time) {
         this.hintText.setText(this.worldMessage);
       } else {
@@ -251,6 +263,7 @@ export class WorldScene extends Phaser.Scene {
         this.startNearbyBattle();
       } else {
         this.tryHealPlayerParty(time);
+        this.tryReadNearbySignpost();
       }
     }
 
@@ -289,6 +302,24 @@ export class WorldScene extends Phaser.Scene {
     ) <= this.tileSize * 1.15;
   }
 
+  private getNearbySignpost(): { position: Phaser.Math.Vector2; message: string } | null {
+    if (!this.player) {
+      return null;
+    }
+
+    return (
+      this.signposts.find(
+        (signpost) =>
+          Phaser.Math.Distance.Between(
+            this.player?.x ?? 0,
+            this.player?.y ?? 0,
+            signpost.position.x,
+            signpost.position.y
+          ) <= this.tileSize * 1.25
+      ) ?? null
+    );
+  }
+
   private tryHealPlayerParty(currentTime: number): void {
     if (!this.isPlayerNearHealPoint()) {
       return;
@@ -298,6 +329,83 @@ export class WorldScene extends Phaser.Scene {
     this.worldMessage = 'Your team is fully healed!';
     this.worldMessageUntil = currentTime + 2200;
     this.hintText?.setText(this.worldMessage);
+  }
+
+  private tryReadNearbySignpost(): void {
+    const nearbySignpost = this.getNearbySignpost();
+    if (!nearbySignpost || !this.player) {
+      return;
+    }
+
+    this.showDialogueBubble(nearbySignpost.message, this.player.x, this.player.y - 52);
+  }
+
+  private showDialogueBubble(message: string, x: number, y: number): void {
+    this.activeDialogueBubble?.destroy();
+    this.activeDialogueBubble = this.add
+      .text(x, y, message, {
+        fontSize: '14px',
+        color: '#0f172a',
+        backgroundColor: '#f8fafc',
+        padding: { x: 10, y: 6 },
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(10);
+
+    this.tweens.add({
+      targets: this.activeDialogueBubble,
+      alpha: { from: 0.15, to: 1 },
+      duration: 130,
+      ease: 'Sine.Out',
+    });
+
+    this.time.delayedCall(2200, () => {
+      this.activeDialogueBubble?.destroy();
+      this.activeDialogueBubble = undefined;
+    });
+  }
+
+  private renderSignpostMarker(position: Phaser.Math.Vector2): void {
+    const post = this.add.rectangle(
+      position.x,
+      position.y + this.tileSize * 0.1,
+      this.tileSize * 0.45,
+      this.tileSize * 0.65,
+      0x92400e,
+      0.95
+    );
+    post.setDepth(1);
+
+    const face = this.add.rectangle(
+      position.x,
+      position.y - this.tileSize * 0.22,
+      this.tileSize * 0.9,
+      this.tileSize * 0.62,
+      0xfef3c7,
+      0.95
+    );
+    face.setDepth(1);
+
+    this.add
+      .text(position.x, position.y - this.tileSize * 0.22, '!', {
+        fontSize: '16px',
+        color: '#7c2d12',
+      })
+      .setOrigin(0.5)
+      .setDepth(2);
+  }
+
+  private getSignpostMessage(index: number): string {
+    const messages = [
+      'Sign: Healing spring nearby.',
+      'Tip: Trainers who spot you will challenge you!',
+      'Hint: The Pokédex tracks Pokémon you discover.',
+      'Remember: Press E to interact with things in the world.',
+      'Explorer note: Seeds create entirely new routes.',
+    ];
+
+    return messages[index % messages.length];
   }
 
 
