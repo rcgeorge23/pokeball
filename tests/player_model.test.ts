@@ -5,6 +5,7 @@ import {
   CURRENT_WORLD_VERSION,
   generateWorldSeed,
   getPlayerPartyCondition,
+  getPlayerPartyProgress,
   getPlayerState,
   healPlayerParty,
   hydratePlayerState,
@@ -55,6 +56,22 @@ test('hydratePlayerState backfills world metadata for legacy saves', () => {
 });
 
 
+
+test('hydratePlayerState backfills partyProgress for legacy saves', () => {
+  const state = hydratePlayerState({
+    name: 'Legacy',
+    party: ['leafling', 'emberfox'],
+    pokedex: ['leafling'],
+    position: { x: 4, y: 8 },
+    defeatedTrainerIds: [],
+  });
+
+  assert.deepEqual(state.partyProgress, [
+    { level: 1, xp: 0 },
+    { level: 1, xp: 0 },
+  ]);
+});
+
 test('regenerateWorldSeed updates the current state with a new seed', () => {
   const initialSeed = getPlayerState().worldSeed;
 
@@ -79,4 +96,8 @@ test('setPlayerPartyCondition persists and healPlayerParty restores full HP and 
   healPlayerParty();
 
   assert.deepEqual(getPlayerPartyCondition(), [{ hpRatio: 1 }, { hpRatio: 1 }]);
+  assert.deepEqual(getPlayerPartyProgress(), [
+    { level: 1, xp: 0 },
+    { level: 1, xp: 0 },
+  ]);
 });

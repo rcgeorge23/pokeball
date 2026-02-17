@@ -18,13 +18,18 @@ import {
   getTypeEffectivenessMultiplier,
   getPoisonTickDamage,
 } from '../battle/battle_model';
-import { applyVictoryReward } from '../battle/rewards';
+import {
+  applyVictoryReward,
+  awardExperienceForVictory,
+} from '../battle/rewards';
 import {
   addPokemonToPokedex,
   getPlayerPartyCondition,
+  getPlayerPartyProgress,
   isTrainerDefeated,
   markTrainerDefeated,
   setPlayerPartyCondition,
+  setPlayerPartyProgress,
 } from '../player/player_model';
 
 interface BattleSceneData {
@@ -104,18 +109,23 @@ export class BattleScene extends Phaser.Scene {
       moveIndex
     );
     const persistedPartyCondition = getPlayerPartyCondition();
+    const persistedPartyProgress = getPlayerPartyProgress();
     this.playerTrainer.party.forEach((pokemon, index) => {
       const condition = persistedPartyCondition[index];
-      if (!condition) {
-        return;
+      if (condition) {
+        pokemon.hp = Phaser.Math.Clamp(
+          Math.round(pokemon.maxHp * condition.hpRatio),
+          0,
+          pokemon.maxHp
+        );
+        pokemon.status = condition.status;
       }
 
-      pokemon.hp = Phaser.Math.Clamp(
-        Math.round(pokemon.maxHp * condition.hpRatio),
-        0,
-        pokemon.maxHp
-      );
-      pokemon.status = condition.status;
+      const progress = persistedPartyProgress[index];
+      if (progress) {
+        pokemon.level = progress.level;
+        pokemon.xp = progress.xp;
+      }
     });
     this.opponentTrainer = createTrainerState(
       data.opponent.name,
@@ -699,19 +709,29 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let rewardMessage = '';
-    if (
-      result === 'win' &&
-      this.opponentTrainer &&
-      !this.opponentAlreadyDefeated
-    ) {
-      const reward = applyVictoryReward(
-        this.opponentTrainer,
-        addPokemonToPokedex
+    if (result === 'win' && this.playerTrainer && this.opponentTrainer) {
+      const xpReward = awardExperienceForVictory(
+        this.playerTrainer,
+        this.opponentTrainer
       );
-      rewardMessage = `You received: ${reward.pokemon.name}`;
+      setPlayerPartyProgress(
+        this.playerTrainer.party.map((pokemon) => ({
+          level: pokemon.level,
+          xp: pokemon.xp,
+        }))
+      );
+      rewardMessage = `Each party member gained ${xpReward.xpPerPokemon} XP.`;
 
-      if (this.opponentTrainerId) {
-        markTrainerDefeated(this.opponentTrainerId);
+      if (!this.opponentAlreadyDefeated) {
+        const reward = applyVictoryReward(
+          this.opponentTrainer,
+          addPokemonToPokedex
+        );
+        rewardMessage += ` You received: ${reward.pokemon.name}`;
+
+        if (this.opponentTrainerId) {
+          markTrainerDefeated(this.opponentTrainerId);
+        }
       }
     }
 
