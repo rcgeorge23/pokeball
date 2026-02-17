@@ -13,7 +13,7 @@ This plan upgrades the current prototype into a more enjoyable, replayable, “g
 ## Milestone 1: Battles feel fun (juice + strategy)
 
 ### 1.1 Turn order & turn clarity
-- [x] Implement speed-based turn order (higher speed acts first; ties random). (commit 8870b6f)
+- [x] Implement speed-based turn order (higher speed acts first; ties random). (commit in this commit)
 - [x] Display a clear “Turn order” log line: Leafling moves first! (commit b3947e8)
 - [x] Add a per-turn state lock so input cannot be spammed during resolution. (commit b3947e8)
 
@@ -64,7 +64,7 @@ Done when: types matter, but implementation stays small.
 Pick one:
 - [x] Burn: -attack (or damage over time). (commit a7a6983)
 - [x] Poison: damage over time (commit 0d02bab)
-- [x] Paralyze: speed reduction + small chance to skip turn (commit in this commit)
+- [x] Paralyze: speed reduction + small chance to skip turn (commit 55d0e76)
 - [x] Extend moves with optional statusInflict field. (commit a7a6983)
 - [x] Implement status application + end-of-turn tick if relevant. (commit a7a6983)
 - [x] Add status icon/text in status panel. (commit a7a6983)
@@ -79,26 +79,26 @@ Done when: at least one status exists end-to-end and is readable.
 - [x] Add a basic Tiled map (single “town route” layout). (commit e438747)
 - [x] Load tilemap JSON + tileset in PreloadScene. (commit 12b96c8)
 - [x] Replace manual obstacles with tile collision layer. (commit d5b6688)
-- [x] Prefer “collision from collision data” / collision group approach. (commit in this commit)
-- [x] Ensure camera bounds match map bounds. (commit in this commit)
+- [x] Prefer “collision from collision data” / collision group approach. (commit 55d0e76)
+- [x] Ensure camera bounds match map bounds. (commit 55d0e76)
 
 Done when: collisions come from the tilemap, not hard-coded rectangles.
 
 ### 3.2 Trainer line-of-sight battles (classic feel)
 - [x] Give trainers facing direction (for stationary and wander). (commit in this PR)
 - [x] Implement LOS cone/ray check. (commit a73263a)
-- [x] If player enters LOS: (commit in this commit)
-  - [x] trainer notices (exclamation marker) (commit in this commit)
-  - [x] trainer walks toward player (commit in this commit)
-  - [x] battle auto-starts (commit in this commit)
-- [x] Keep “Press E” as fallback interaction option. (commit in this commit)
+- [x] If player enters LOS: (commit 55d0e76)
+  - [x] trainer notices (exclamation marker) (commit 55d0e76)
+  - [x] trainer walks toward player (commit 55d0e76)
+  - [x] battle auto-starts (commit 55d0e76)
+- [x] Keep “Press E” as fallback interaction option. (commit 55d0e76)
 
 Done when: you can trigger battles by walking into a trainer’s sightline.
 
 ### 3.3 Add world “comfort” interactions
-- [x] Add a healing point (simple interactable tile/object). (commit in this commit)
-  - [x] restores player party HP. (commit in this commit)
-  - [x] shows “Your team is fully healed!”. (commit in this commit)
+- [x] Add a healing point (simple interactable tile/object). (commit 55d0e76)
+  - [x] restores player party HP. (commit 55d0e76)
+  - [x] shows “Your team is fully healed!”. (commit 55d0e76)
 - [x] Add basic signposts/dialogue bubbles (static text is fine). (commit pending)
 
 Done when: the world has at least 2 interactive non-battle objects.
@@ -108,7 +108,7 @@ Done when: the world has at least 2 interactive non-battle objects.
 ## Milestone 4: Progression loop (why keep playing?)
 
 ### 4.1 Leveling and XP (simple progression)
-- [ ] Add Pokémon fields: level, xp.
+- [x] Add Pokémon fields: level, xp. (commit 55d0e76)
 - [ ] Add xpYield to Pokémon definitions (or derived from stats).
 - [ ] Award XP on battle win (and partial on loss, optional).
 - [ ] On level up:
