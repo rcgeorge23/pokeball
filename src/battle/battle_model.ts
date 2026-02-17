@@ -29,6 +29,7 @@ export interface PokemonDefinition {
   types: string[];
   level: number;
   xp: number;
+  xpYield: number;
   hp: number;
   attack: number;
   defense: number;
@@ -42,6 +43,7 @@ export interface PokemonInstance {
   types: string[];
   level: number;
   xp: number;
+  xpYield: number;
   maxHp: number;
   hp: number;
   attack: number;
@@ -118,6 +120,7 @@ export function createPokemonInstance(
     types: [...definition.types],
     level: definition.level,
     xp: definition.xp,
+    xpYield: definition.xpYield,
     maxHp: definition.hp,
     hp: definition.hp,
     attack: definition.attack,

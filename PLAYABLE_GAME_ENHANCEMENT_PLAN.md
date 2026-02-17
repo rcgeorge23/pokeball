@@ -109,7 +109,7 @@ Done when: the world has at least 2 interactive non-battle objects.
 
 ### 4.1 Leveling and XP (simple progression)
 - [x] Add Pokémon fields: level, xp. (commit 55d0e76)
-- [ ] Add xpYield to Pokémon definitions (or derived from stats).
+- [x] Add xpYield to Pokémon definitions (or derived from stats). (commit in this commit)
 - [ ] Award XP on battle win (and partial on loss, optional).
 - [ ] On level up:
   - [ ] increase stats by small increments
