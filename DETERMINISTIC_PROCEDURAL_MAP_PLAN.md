@@ -88,9 +88,9 @@ Done when: every map has a consistent “journey” structure.
 Done when: the player can traverse a recognizable route network.
 
 ### 3.3 Add boundaries and obstacles that make sense
-- [ ] Fill non-walkable space with obstacle tiles (rocks/trees/walls).
-- [ ] Add occasional obstacle clusters that shape movement (not random peppering).
-- [ ] Ensure no enclosed unreachable areas unless intentionally marked as decoration.
+- [x] Fill non-walkable space with obstacle tiles (rocks/trees/walls). (this commit)
+- [x] Add occasional obstacle clusters that shape movement (not random peppering). (this commit)
+- [x] Ensure no enclosed unreachable areas unless intentionally marked as decoration. (this commit)
 
 Done when: the world feels shaped, and traversal choices exist.
 

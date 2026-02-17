@@ -134,3 +134,55 @@ test('generateMapFromSeed carves walkable routes for navigation graph nodes', ()
   const walkableTiles = map.collision.filter((isBlocked) => !isBlocked).length;
   assert.ok(walkableTiles > Math.floor(map.width * map.height * 0.15));
 });
+
+test('generateMapFromSeed keeps all walkable tiles connected to player start', () => {
+  const map = generateMapFromSeed('walkable-connectivity-seed', { width: 60, height: 44 });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const start = map.spawnPoints.playerStart;
+  const startIndex = toIndex(start.x, start.y);
+
+  assert.equal(map.collision[startIndex], false);
+
+  const visited = new Set<number>();
+  const queue = [startIndex];
+  visited.add(startIndex);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % map.width;
+    const y = Math.floor(current / map.width);
+    const neighbors = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+    ];
+
+    for (const [nextX, nextY] of neighbors) {
+      if (nextX < 0 || nextX >= map.width || nextY < 0 || nextY >= map.height) {
+        continue;
+      }
+
+      const nextIndex = toIndex(nextX, nextY);
+      if (map.collision[nextIndex] || visited.has(nextIndex)) {
+        continue;
+      }
+
+      visited.add(nextIndex);
+      queue.push(nextIndex);
+    }
+  }
+
+  for (let y = 0; y < map.height; y += 1) {
+    for (let x = 0; x < map.width; x += 1) {
+      const index = toIndex(x, y);
+      if (!map.collision[index]) {
+        assert.ok(visited.has(index));
+      }
+    }
+  }
+});
