@@ -156,8 +156,10 @@ function generateMapFromAttemptSeed(
   const walkableTileKeys = collectWalkableTileKeys(width, height, toIndex, collision);
 
   const usedPoints = new Set<string>();
+  const usedPointCoordinates: MapPoint[] = [];
   const registerPoint = (point: MapPoint): void => {
     usedPoints.add(`${point.x},${point.y}`);
+    usedPointCoordinates.push(point);
   };
   registerPoint(playerStart);
 
@@ -166,20 +168,38 @@ function generateMapFromAttemptSeed(
     xMax: Math.min(width - 2, playerStart.x + 5),
     yMin: Math.max(1, playerStart.y - 5),
     yMax: Math.min(height - 2, playerStart.y + 5),
-  }, walkableTileKeys);
+  }, walkableTileKeys, usedPointCoordinates, 3);
   registerPoint(healPoint);
 
   const trainerCount = Math.max(1, options.trainerCount ?? 10);
   const signCount = Math.max(1, options.signCount ?? 4);
 
   const trainers = Array.from({ length: trainerCount }, () => {
-    const trainerPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints, undefined, walkableTileKeys);
+    const trainerPoint = pickUniqueWalkablePoint(
+      rng,
+      width,
+      height,
+      usedPoints,
+      undefined,
+      walkableTileKeys,
+      usedPointCoordinates,
+      2
+    );
     registerPoint(trainerPoint);
     return trainerPoint;
   });
 
   const signs = Array.from({ length: signCount }, () => {
-    const signPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints, undefined, walkableTileKeys);
+    const signPoint = pickUniqueWalkablePoint(
+      rng,
+      width,
+      height,
+      usedPoints,
+      undefined,
+      walkableTileKeys,
+      usedPointCoordinates,
+      2
+    );
     registerPoint(signPoint);
     return signPoint;
   });
@@ -245,6 +265,54 @@ function validateGeneratedMapConnectivity(
 
   if (map.collision[startIndex]) {
     return { ok: false, reason: 'Player spawn is blocked by collision.' };
+  }
+
+  const openNeighborsAroundPlayer = countWalkableOrthogonalNeighbors(
+    map.width,
+    map.height,
+    toIndex,
+    map.collision,
+    map.spawnPoints.playerStart
+  );
+  if (openNeighborsAroundPlayer < 2) {
+    return {
+      ok: false,
+      reason: `Player spawn does not have enough free neighboring tiles (found ${openNeighborsAroundPlayer}, expected at least 2).`,
+    };
+  }
+
+  const trainerPointKeys = new Set<string>();
+  for (const trainerPoint of map.spawnPoints.trainers) {
+    const trainerIndex = toIndex(trainerPoint.x, trainerPoint.y);
+    if (map.collision[trainerIndex]) {
+      return { ok: false, reason: 'Trainer spawn is blocked by collision.' };
+    }
+
+    const key = `${trainerPoint.x},${trainerPoint.y}`;
+    if (trainerPointKeys.has(key)) {
+      return { ok: false, reason: 'Trainer spawns overlap each other.' };
+    }
+
+    trainerPointKeys.add(key);
+  }
+
+  const keyPoints: MapPoint[] = [
+    map.spawnPoints.playerStart,
+    map.spawnPoints.healPoint,
+    ...map.spawnPoints.trainers,
+    ...map.spawnPoints.signs,
+  ];
+  const minimumSpacing = 2;
+  for (let index = 0; index < keyPoints.length; index += 1) {
+    for (let compareIndex = index + 1; compareIndex < keyPoints.length; compareIndex += 1) {
+      const spacing = manhattanDistance(keyPoints[index], keyPoints[compareIndex]);
+      if (spacing < minimumSpacing) {
+        return {
+          ok: false,
+          reason: `Key points are too close together (spacing ${spacing}, expected at least ${minimumSpacing}).`,
+        };
+      }
+    }
   }
 
   const reachable = collectReachableWalkableTiles(
@@ -755,6 +823,39 @@ function collectReachableWalkableTiles(
   return reachable;
 }
 
+function countWalkableOrthogonalNeighbors(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  point: MapPoint
+): number {
+  const neighbors: MapPoint[] = [
+    { x: point.x - 1, y: point.y },
+    { x: point.x + 1, y: point.y },
+    { x: point.x, y: point.y - 1 },
+    { x: point.x, y: point.y + 1 },
+  ];
+
+  let walkableNeighborCount = 0;
+  for (const neighbor of neighbors) {
+    if (
+      neighbor.x < 1 ||
+      neighbor.x > width - 2 ||
+      neighbor.y < 1 ||
+      neighbor.y > height - 2
+    ) {
+      continue;
+    }
+
+    if (!collision[toIndex(neighbor.x, neighbor.y)]) {
+      walkableNeighborCount += 1;
+    }
+  }
+
+  return walkableNeighborCount;
+}
+
 function buildNavigationGraph(
   rng: SeededRng,
   width: number,
@@ -913,7 +1014,9 @@ function pickUniqueWalkablePoint(
     yMin: 1,
     yMax: height - 2,
   },
-  allowedPoints?: Set<string>
+  allowedPoints?: Set<string>,
+  usedPointCoordinates: MapPoint[] = [],
+  minimumManhattanDistance = 0
 ): MapPoint {
   const maxAttempts = 200;
 
@@ -921,7 +1024,10 @@ function pickUniqueWalkablePoint(
     const x = rng.nextInt(bounds.xMin, bounds.xMax);
     const y = rng.nextInt(bounds.yMin, bounds.yMax);
     const key = `${x},${y}`;
-    if (!usedPoints.has(key) && (!allowedPoints || allowedPoints.has(key))) {
+    const hasMinimumSpacing = usedPointCoordinates.every(
+      (usedPoint) => manhattanDistance({ x, y }, usedPoint) >= minimumManhattanDistance
+    );
+    if (!usedPoints.has(key) && (!allowedPoints || allowedPoints.has(key)) && hasMinimumSpacing) {
       return { x, y };
     }
   }
@@ -941,7 +1047,11 @@ function pickUniqueWalkablePoint(
         y >= bounds.yMin &&
         y <= bounds.yMax;
 
-      if (withinBounds) {
+      const hasMinimumSpacing = usedPointCoordinates.every(
+        (usedPoint) => manhattanDistance({ x, y }, usedPoint) >= minimumManhattanDistance
+      );
+
+      if (withinBounds && hasMinimumSpacing) {
         return { x, y };
       }
     }
@@ -952,4 +1062,8 @@ function pickUniqueWalkablePoint(
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function manhattanDistance(pointA: MapPoint, pointB: MapPoint): number {
+  return Math.abs(pointA.x - pointB.x) + Math.abs(pointA.y - pointB.y);
 }

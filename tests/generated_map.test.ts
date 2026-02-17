@@ -313,3 +313,51 @@ test('generateMapFromSeed keeps required progression points reachable from spawn
 
   assert.ok(reachableTrainerCount >= 3);
 });
+
+test('generateMapFromSeed enforces spawn safety and key point spacing rules', () => {
+  const map = generateMapFromSeed('spawn-safety-seed', {
+    width: 64,
+    height: 48,
+    trainerCount: 10,
+    signCount: 6,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+
+  const playerStart = map.spawnPoints.playerStart;
+  const playerStartIndex = toIndex(playerStart.x, playerStart.y);
+  assert.equal(map.collision[playerStartIndex], false);
+
+  const playerNeighbors = [
+    [playerStart.x - 1, playerStart.y],
+    [playerStart.x + 1, playerStart.y],
+    [playerStart.x, playerStart.y - 1],
+    [playerStart.x, playerStart.y + 1],
+  ].filter(([x, y]) => x >= 1 && x <= map.width - 2 && y >= 1 && y <= map.height - 2);
+
+  const walkableNeighborCount = playerNeighbors.filter(([x, y]) => !map.collision[toIndex(x, y)]).length;
+  assert.ok(walkableNeighborCount >= 2);
+
+  const trainerKeys = new Set<string>();
+  for (const trainer of map.spawnPoints.trainers) {
+    assert.equal(map.collision[toIndex(trainer.x, trainer.y)], false);
+    const key = `${trainer.x},${trainer.y}`;
+    assert.equal(trainerKeys.has(key), false);
+    trainerKeys.add(key);
+  }
+
+  const keyPoints = [
+    map.spawnPoints.playerStart,
+    map.spawnPoints.healPoint,
+    ...map.spawnPoints.trainers,
+    ...map.spawnPoints.signs,
+  ];
+
+  for (let index = 0; index < keyPoints.length; index += 1) {
+    for (let compareIndex = index + 1; compareIndex < keyPoints.length; compareIndex += 1) {
+      const spacing =
+        Math.abs(keyPoints[index].x - keyPoints[compareIndex].x) +
+        Math.abs(keyPoints[index].y - keyPoints[compareIndex].y);
+      assert.ok(spacing >= 2);
+    }
+  }
+});
