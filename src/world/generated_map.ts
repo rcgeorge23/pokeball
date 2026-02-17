@@ -146,17 +146,11 @@ export function generateMapFromSeed(
   });
 
   const biomeIds = GENERATED_MAP_BIOMES;
-  const biomeByTile: BiomeId[] = [];
+  const biomeByTile = assignBiomesByRegion(seed, width, height, biomeIds);
   const difficultyBandByTile: DifficultyBand[] = [];
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = toIndex(x, y);
-      const xRatio = x / Math.max(1, width - 1);
-      const yRatio = y / Math.max(1, height - 1);
-      const regionNoise = rng.nextFloat() * 0.18 - 0.09;
-      const biomeIndex = clamp(Math.floor((xRatio + yRatio + regionNoise) * 2), 0, biomeIds.length - 1);
-      biomeByTile[index] = biomeIds[biomeIndex];
-
       const distanceFromSpawn = Math.hypot(x - playerStart.x, y - playerStart.y);
       const normalizedDistance = distanceFromSpawn / Math.max(width, height);
       if (normalizedDistance < 0.2) {
@@ -187,6 +181,75 @@ export function generateMapFromSeed(
       navigationGraph,
     },
   };
+}
+
+function assignBiomesByRegion(
+  seed: string | number,
+  width: number,
+  height: number,
+  biomeIds: BiomeId[]
+): BiomeId[] {
+  const toIndex = (x: number, y: number): number => y * width + x;
+  const biomeByTile: BiomeId[] = Array.from({ length: width * height }, () => biomeIds[0]);
+  const biomeRng = new SeededRng(`biome-regions:${String(seed)}`);
+
+  const anchors = biomeIds.map((biomeId, index) => {
+    const ratio = (index + 1) / (biomeIds.length + 1);
+    const horizontalBias = index % 2 === 0 ? 0.28 : 0.72;
+    const xCenter = width * horizontalBias;
+    const yCenter = height * ratio;
+
+    return {
+      biomeId,
+      x: clamp(Math.floor(xCenter + biomeRng.nextInt(-18, 18)), 1, width - 2),
+      y: clamp(Math.floor(yCenter + biomeRng.nextInt(-18, 18)), 1, height - 2),
+    };
+  });
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = toIndex(x, y);
+      let closestAnchor = anchors[0];
+      let secondClosestAnchor = anchors[1] ?? anchors[0];
+      let closestDistance = Number.POSITIVE_INFINITY;
+      let secondClosestDistance = Number.POSITIVE_INFINITY;
+
+      for (const anchor of anchors) {
+        const distance = Math.hypot(x - anchor.x, y - anchor.y);
+        if (distance < closestDistance) {
+          secondClosestDistance = closestDistance;
+          secondClosestAnchor = closestAnchor;
+          closestDistance = distance;
+          closestAnchor = anchor;
+        } else if (distance < secondClosestDistance) {
+          secondClosestDistance = distance;
+          secondClosestAnchor = anchor;
+        }
+      }
+
+      const borderDistanceDelta = secondClosestDistance - closestDistance;
+      const blendNoise = noiseFromCoordinate(seed, x, y) * 2 - 1;
+      const blendThreshold = 2.8 + Math.abs(blendNoise) * 2.2;
+      biomeByTile[index] =
+        borderDistanceDelta <= blendThreshold && blendNoise > 0
+          ? secondClosestAnchor.biomeId
+          : closestAnchor.biomeId;
+    }
+  }
+
+  return biomeByTile;
+}
+
+function noiseFromCoordinate(seed: string | number, x: number, y: number): number {
+  const source = `${String(seed)}:${x},${y}`;
+  let hash = 2166136261;
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return ((hash >>> 0) % 10000) / 10000;
 }
 
 function carveNavigationRoutes(

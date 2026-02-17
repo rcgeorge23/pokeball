@@ -74,6 +74,48 @@ test('generateMapFromSeed changes output for different seeds', () => {
   assert.ok(JSON.stringify(mapA.spawnPoints) !== JSON.stringify(mapB.spawnPoints));
 });
 
+test('generateMapFromSeed assigns deterministic biome regions with blended borders', () => {
+  const map = generateMapFromSeed('biome-region-seed', { width: 64, height: 48 });
+  const biomeCounts = new Map<string, number>();
+
+  for (const biome of map.metadata.biomeByTile) {
+    biomeCounts.set(biome, (biomeCounts.get(biome) ?? 0) + 1);
+  }
+
+  for (const biomeId of GENERATED_MAP_BIOMES) {
+    assert.ok((biomeCounts.get(biomeId) ?? 0) > 0);
+  }
+
+  const biomeTransitions = new Set<string>();
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+
+  for (let y = 0; y < map.height; y += 1) {
+    for (let x = 0; x < map.width; x += 1) {
+      const tileBiome = map.metadata.biomeByTile[toIndex(x, y)];
+      const neighbors = [
+        [x + 1, y],
+        [x, y + 1],
+      ];
+
+      for (const [nextX, nextY] of neighbors) {
+        if (nextX >= map.width || nextY >= map.height) {
+          continue;
+        }
+
+        const nextBiome = map.metadata.biomeByTile[toIndex(nextX, nextY)];
+        if (nextBiome === tileBiome) {
+          continue;
+        }
+
+        const transitionKey = [tileBiome, nextBiome].sort().join('->');
+        biomeTransitions.add(transitionKey);
+      }
+    }
+  }
+
+  assert.ok(biomeTransitions.size >= 3);
+});
+
 test('generateMapFromSeed carves walkable routes for navigation graph nodes', () => {
   const map = generateMapFromSeed('route-carving-seed', { width: 48, height: 36 });
   const toIndex = (x: number, y: number): number => y * map.width + x;
