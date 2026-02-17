@@ -94,6 +94,7 @@ test('awardExperienceForVictory grants equal XP share to player party', () => {
 
 test('applyStatLevelGains increases stats each gained level', () => {
   const pokemon = structuredClone(playerTrainer.party[0]);
+  pokemon.hp = 12;
 
   applyStatLevelGains(pokemon, 2);
 
@@ -102,6 +103,17 @@ test('applyStatLevelGains increases stats each gained level', () => {
   assert.equal(pokemon.attack, 16);
   assert.equal(pokemon.defense, 13);
   assert.equal(pokemon.speed, 12);
+  assert.equal(pokemon.hp, 31);
+});
+
+test('applyStatLevelGains caps level-up healing at max HP', () => {
+  const pokemon = structuredClone(playerTrainer.party[1]);
+  pokemon.hp = 41;
+
+  applyStatLevelGains(pokemon, 1);
+
+  assert.equal(pokemon.maxHp, 46);
+  assert.equal(pokemon.hp, 46);
 });
 
 test('applyXpLevelUps converts XP thresholds into level and stat gains', () => {
