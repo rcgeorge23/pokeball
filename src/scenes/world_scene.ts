@@ -14,7 +14,7 @@ import {
   updatePlayerPosition,
 } from '../player/player_model';
 import { deriveJoystickDirection } from '../world/joystick_input';
-import { generateMapFromSeed } from '../world/generated_map';
+import { GeneratedMapPointOfInterest, generateMapFromSeed } from '../world/generated_map';
 import { generateProceduralTrainerData } from '../world/procedural_trainer_generator';
 import { renderGeneratedMap } from '../world/generated_map_renderer';
 
@@ -46,6 +46,7 @@ export class WorldScene extends Phaser.Scene {
   private toggleCollisionButton?: HTMLButtonElement;
   private healPointWorldPosition?: Phaser.Math.Vector2;
   private signposts: Array<{ position: Phaser.Math.Vector2; message: string }> = [];
+  private pointsOfInterest: Array<{ poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 }> = [];
   private activeDialogueBubble?: Phaser.GameObjects.Text;
   private worldMessage = '';
   private worldMessageUntil = 0;
@@ -81,8 +82,13 @@ export class WorldScene extends Phaser.Scene {
       ),
       message: this.getSignpostMessage(index),
     }));
+    this.pointsOfInterest = generatedMap.metadata.pointsOfInterest.map((poi) => ({
+      poi,
+      position: new Phaser.Math.Vector2(poi.x * tileSize + tileSize / 2, poi.y * tileSize + tileSize / 2),
+    }));
     this.renderHealPointMarker(this.healPointWorldPosition);
     this.signposts.forEach((signpost) => this.renderSignpostMarker(signpost.position));
+    this.pointsOfInterest.forEach((pointOfInterest) => this.renderPointOfInterestMarker(pointOfInterest));
 
     const playerStartX = this.playerState.position?.x ?? generatedSpawnX;
     const playerStartY = this.playerState.position?.y ?? generatedSpawnY;
@@ -253,6 +259,8 @@ export class WorldScene extends Phaser.Scene {
         this.hintText.setText('Press E to heal your team');
       } else if (this.getNearbySignpost()) {
         this.hintText.setText('Press E to read sign');
+      } else if (this.getNearbyPointOfInterest()) {
+        this.hintText.setText('Press E to inspect landmark');
       } else if (this.worldMessageUntil > time) {
         this.hintText.setText(this.worldMessage);
       } else {
@@ -268,6 +276,7 @@ export class WorldScene extends Phaser.Scene {
       } else {
         this.tryHealPlayerParty(time);
         this.tryReadNearbySignpost();
+        this.tryInspectNearbyPointOfInterest();
       }
     }
 
@@ -367,6 +376,64 @@ export class WorldScene extends Phaser.Scene {
     this.time.delayedCall(2200, () => {
       this.activeDialogueBubble?.destroy();
       this.activeDialogueBubble = undefined;
+    });
+  }
+
+
+  private getNearbyPointOfInterest(): { poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 } | null {
+    if (!this.player) {
+      return null;
+    }
+
+    return (
+      this.pointsOfInterest.find(
+        ({ position }) =>
+          Phaser.Math.Distance.Between(
+            this.player?.x ?? 0,
+            this.player?.y ?? 0,
+            position.x,
+            position.y
+          ) <= this.tileSize * 1.4
+      ) ?? null
+    );
+  }
+
+  private tryInspectNearbyPointOfInterest(): void {
+    const nearbyPointOfInterest = this.getNearbyPointOfInterest();
+    if (!nearbyPointOfInterest || !this.player) {
+      return;
+    }
+
+    this.showDialogueBubble(
+      `${nearbyPointOfInterest.poi.title}: ${nearbyPointOfInterest.poi.description}`,
+      this.player.x,
+      this.player.y - 52
+    );
+  }
+
+  private renderPointOfInterestMarker(pointOfInterest: { poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 }): void {
+    const colorByType: Record<GeneratedMapPointOfInterest['type'], number> = {
+      shortcutGate: 0x60a5fa,
+      scenicLandmark: 0xf59e0b,
+    };
+
+    const marker = this.add.star(
+      pointOfInterest.position.x,
+      pointOfInterest.position.y,
+      5,
+      this.tileSize * 0.12,
+      this.tileSize * 0.38,
+      colorByType[pointOfInterest.poi.type],
+      0.92
+    );
+    marker.setDepth(1);
+
+    this.tweens.add({
+      targets: marker,
+      angle: pointOfInterest.poi.type === 'shortcutGate' ? 360 : -360,
+      duration: pointOfInterest.poi.type === 'shortcutGate' ? 5000 : 7200,
+      repeat: -1,
+      ease: 'Linear',
     });
   }
 

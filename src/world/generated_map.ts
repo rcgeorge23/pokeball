@@ -43,6 +43,18 @@ export interface GeneratedMapMetadata {
   decorationByTile: Array<DecorationId | null>;
   biomeLandmarks: Array<{ biomeId: BiomeId; x: number; y: number; decoration: DecorationId }>;
   navigationGraph: GeneratedMapNavigationGraph;
+  pointsOfInterest: GeneratedMapPointOfInterest[];
+}
+
+export type PointOfInterestType = 'shortcutGate' | 'scenicLandmark';
+
+export interface GeneratedMapPointOfInterest {
+  id: string;
+  type: PointOfInterestType;
+  x: number;
+  y: number;
+  title: string;
+  description: string;
 }
 
 export interface GeneratedMapNavigationNode {
@@ -240,6 +252,20 @@ function generateMapFromAttemptSeed(
     return signPoint;
   });
 
+  const pointsOfInterest = placePointsOfInterest(
+    rng,
+    width,
+    height,
+    navigationGraph,
+    usedPoints,
+    usedPointCoordinates,
+    routeLikeWalkableKeys,
+    walkableTileKeys
+  );
+  for (const pointOfInterest of pointsOfInterest) {
+    registerPoint({ x: pointOfInterest.x, y: pointOfInterest.y });
+  }
+
   const biomeIds = GENERATED_MAP_BIOMES;
   const biomeByTile = assignBiomesByRegion(attemptSeed, width, height, biomeIds);
   const decorationByTile = applyDecorations(attemptSeed, width, height, collision, biomeByTile, {
@@ -272,8 +298,97 @@ function generateMapFromAttemptSeed(
       decorationByTile,
       biomeLandmarks,
       navigationGraph,
+      pointsOfInterest,
     },
   };
+}
+
+function placePointsOfInterest(
+  rng: SeededRng,
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  usedPoints: Set<string>,
+  usedPointCoordinates: MapPoint[],
+  routeLikeWalkableKeys: Set<string>,
+  walkableTileKeys: Set<string>
+): GeneratedMapPointOfInterest[] {
+  const optionalNodeIds = new Set<string>();
+  for (const edge of navigationGraph.edges) {
+    if (edge.kind === 'optional') {
+      optionalNodeIds.add(edge.fromNodeId);
+      optionalNodeIds.add(edge.toNodeId);
+    }
+  }
+
+  const optionalBranchKeys = new Set<string>();
+  for (const node of navigationGraph.nodes) {
+    if (!optionalNodeIds.has(node.id)) {
+      continue;
+    }
+
+    const key = `${node.x},${node.y}`;
+    if (walkableTileKeys.has(key)) {
+      optionalBranchKeys.add(key);
+    }
+  }
+
+  const optionalRouteKeys = new Set<string>();
+  for (const key of routeLikeWalkableKeys) {
+    if (optionalBranchKeys.has(key)) {
+      optionalRouteKeys.add(key);
+    }
+  }
+
+  const placementCandidates =
+    optionalRouteKeys.size > 0
+      ? optionalRouteKeys
+      : routeLikeWalkableKeys.size > 0
+        ? routeLikeWalkableKeys
+        : walkableTileKeys;
+  const pointsOfInterest: GeneratedMapPointOfInterest[] = [];
+
+  const shortcutPoint = pickUniqueWalkablePoint(
+    rng,
+    width,
+    height,
+    usedPoints,
+    undefined,
+    placementCandidates,
+    usedPointCoordinates,
+    3
+  );
+  pointsOfInterest.push({
+    id: 'poi-shortcut-gate',
+    type: 'shortcutGate',
+    x: shortcutPoint.x,
+    y: shortcutPoint.y,
+    title: 'Old Gate Arch',
+    description: 'A weathered arch marks a hidden shortcut loop through the wilds.',
+  });
+
+  const scenicCandidates = new Set<string>(placementCandidates);
+  scenicCandidates.delete(`${shortcutPoint.x},${shortcutPoint.y}`);
+  const scenicPoint = pickUniqueWalkablePoint(
+    rng,
+    width,
+    height,
+    usedPoints,
+    undefined,
+    scenicCandidates.size > 0 ? scenicCandidates : placementCandidates,
+    [...usedPointCoordinates, shortcutPoint],
+    3
+  );
+  pointsOfInterest.push({
+    id: 'poi-scenic-landmark',
+    type: 'scenicLandmark',
+    x: scenicPoint.x,
+    y: scenicPoint.y,
+    title: 'Whispering Vista',
+    description: 'A scenic overlook where trainers leave notes about rare sights.',
+  });
+
+  return pointsOfInterest;
 }
 
 function assignDifficultyBands(
@@ -432,6 +547,7 @@ function validateGeneratedMapConnectivity(
     map.spawnPoints.healPoint,
     ...map.spawnPoints.trainers,
     ...map.spawnPoints.signs,
+    ...map.metadata.pointsOfInterest.map((poi) => ({ x: poi.x, y: poi.y })),
   ];
   const minimumSpacing = 2;
   for (let index = 0; index < keyPoints.length; index += 1) {
