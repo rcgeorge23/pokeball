@@ -9,6 +9,11 @@ export interface PartyCondition {
   status?: PersistedStatusCondition;
 }
 
+export interface PartyProgress {
+  level: number;
+  xp: number;
+}
+
 export interface PlayerState {
   name: string;
   party: string[];
@@ -21,6 +26,7 @@ export interface PlayerState {
   worldSeed: string;
   worldVersion: number;
   partyCondition: PartyCondition[];
+  partyProgress: PartyProgress[];
 }
 
 let fallbackSeedCounter = 0;
@@ -52,6 +58,7 @@ function createInitialState(): PlayerState {
     worldSeed: generateWorldSeed(),
     worldVersion: CURRENT_WORLD_VERSION,
     partyCondition: party.map(() => ({ hpRatio: 1 })),
+    partyProgress: party.map(() => ({ level: 1, xp: 0 })),
   };
 }
 
@@ -89,6 +96,29 @@ function sanitizePartyCondition(
   });
 }
 
+function sanitizePartyProgress(
+  value: unknown,
+  partyLength: number
+): PartyProgress[] {
+  if (!Array.isArray(value)) {
+    return Array.from({ length: partyLength }, () => ({ level: 1, xp: 0 }));
+  }
+
+  return Array.from({ length: partyLength }, (_, index) => {
+    const candidate = value[index] as Partial<PartyProgress> | undefined;
+    const level =
+      typeof candidate?.level === 'number' && Number.isFinite(candidate.level)
+        ? Math.max(1, Math.floor(candidate.level))
+        : 1;
+    const xp =
+      typeof candidate?.xp === 'number' && Number.isFinite(candidate.xp)
+        ? Math.max(0, Math.floor(candidate.xp))
+        : 0;
+
+    return { level, xp };
+  });
+}
+
 export function hydratePlayerState(saved: Partial<PlayerState> | null): PlayerState {
   const initialState = createInitialState();
   if (!saved) {
@@ -114,6 +144,10 @@ export function hydratePlayerState(saved: Partial<PlayerState> | null): PlayerSt
     worldVersion,
     partyCondition: sanitizePartyCondition(
       saved.partyCondition,
+      sanitizeStringArray(saved.party, initialState.party).length
+    ),
+    partyProgress: sanitizePartyProgress(
+      saved.partyProgress,
       sanitizeStringArray(saved.party, initialState.party).length
     ),
   };
@@ -194,6 +228,20 @@ export function healPlayerParty(): void {
   currentState = {
     ...currentState,
     partyCondition: currentState.party.map(() => ({ hpRatio: 1 })),
+  };
+  savePlayerState(currentState);
+}
+
+export function getPlayerPartyProgress(): PartyProgress[] {
+  return currentState.partyProgress.map((progress) => ({ ...progress }));
+}
+
+export function setPlayerPartyProgress(
+  partyProgress: PartyProgress[]
+): void {
+  currentState = {
+    ...currentState,
+    partyProgress: sanitizePartyProgress(partyProgress, currentState.party.length),
   };
   savePlayerState(currentState);
 }
