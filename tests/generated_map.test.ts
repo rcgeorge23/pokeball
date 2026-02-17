@@ -411,3 +411,45 @@ test('generateMapFromSeed places signposts near route forks and loops when avail
     assert.ok(walkableNeighbors >= 2);
   }
 });
+
+
+test('generateMapFromSeed places deterministic POIs along optional route branches', () => {
+  const map = generateMapFromSeed('poi-loop-seed', {
+    width: 72,
+    height: 54,
+    trainerCount: 9,
+    signCount: 5,
+  });
+  const repeatMap = generateMapFromSeed('poi-loop-seed', {
+    width: 72,
+    height: 54,
+    trainerCount: 9,
+    signCount: 5,
+  });
+
+  assert.deepEqual(map.metadata.pointsOfInterest, repeatMap.metadata.pointsOfInterest);
+  assert.equal(map.metadata.pointsOfInterest.length, 2);
+
+  const poiTypes = new Set(map.metadata.pointsOfInterest.map((poi) => poi.type));
+  assert.ok(poiTypes.has('shortcutGate'));
+  assert.ok(poiTypes.has('scenicLandmark'));
+
+  const optionalNodeIds = new Set(
+    map.metadata.navigationGraph.edges
+      .filter((edge) => edge.kind === 'optional')
+      .flatMap((edge) => [edge.fromNodeId, edge.toNodeId])
+  );
+  const optionalNodes = map.metadata.navigationGraph.nodes.filter((node) => optionalNodeIds.has(node.id));
+
+  for (const pointOfInterest of map.metadata.pointsOfInterest) {
+    const nearestOptionalNodeDistance = Math.min(
+      ...optionalNodes.map(
+        (node) =>
+          Math.abs(node.x - pointOfInterest.x) +
+          Math.abs(node.y - pointOfInterest.y)
+      )
+    );
+
+    assert.ok(nearestOptionalNodeDistance <= 20);
+  }
+});

@@ -170,10 +170,10 @@ Done when: trainers are varied, reproducible, and persistently defeatable.
 ## Milestone 7: Deterministic “points of interest” loop (makes exploration rewarding)
 
 ### 7.1 Add optional POIs that change the route choice
-- [ ] Add at least 2 POI types:
-  - [ ] shortcut gate (locked until N defeats, or always open but hidden behind loop)
-  - [ ] scenic landmark (purely cosmetic + sign text)
-- [ ] Place POIs along optional loop branches to reward exploration.
+- [x] Add at least 2 POI types: (this commit)
+  - [x] shortcut gate (locked until N defeats, or always open but hidden behind loop) (this commit)
+  - [x] scenic landmark (purely cosmetic + sign text) (this commit)
+- [x] Place POIs along optional loop branches to reward exploration. (this commit)
 
 Done when: there’s a reason to wander beyond the main route.
 
