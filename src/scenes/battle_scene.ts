@@ -793,7 +793,9 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       didContinue = true;
-      this.scene.start('WorldScene');
+      this.scene.start('WorldScene', {
+        recentBattleTrainerId: this.opponentTrainerId,
+      });
     };
 
     this.continueButton?.destroy();

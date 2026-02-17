@@ -50,11 +50,19 @@ export class WorldScene extends Phaser.Scene {
   private activeDialogueBubble?: Phaser.GameObjects.Text;
   private worldMessage = '';
   private worldMessageUntil = 0;
+  private recentlyBattledTrainerId?: string;
+  private shouldIgnoreRecentTrainerEncounter = false;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   constructor() {
     super('WorldScene');
+  }
+
+  init(data?: { recentBattleTrainerId?: string }): void {
+    const recentBattleTrainerId = data?.recentBattleTrainerId;
+    this.recentlyBattledTrainerId = recentBattleTrainerId;
+    this.shouldIgnoreRecentTrainerEncounter = Boolean(recentBattleTrainerId);
   }
 
   create(): void {
@@ -238,6 +246,8 @@ export class WorldScene extends Phaser.Scene {
         : null;
     this.nearbyTrainer =
       this.npcController?.findNearbyTrainer(this.player, 80) ?? null;
+
+    this.updateRecentTrainerEncounterIgnore();
 
     this.maybeStartLineOfSightEncounter();
 
@@ -832,6 +842,40 @@ export class WorldScene extends Phaser.Scene {
         this.lineOfSightSequenceActive = false;
       }
     });
+  }
+
+  private updateRecentTrainerEncounterIgnore(): void {
+    if (!this.shouldIgnoreRecentTrainerEncounter || !this.recentlyBattledTrainerId || !this.player) {
+      return;
+    }
+
+    if (this.spottingTrainer?.definition.id === this.recentlyBattledTrainerId) {
+      this.spottingTrainer = null;
+    }
+
+    const nearbyTrainer = this.nearbyTrainer;
+    if (nearbyTrainer?.definition.id === this.recentlyBattledTrainerId) {
+      this.nearbyTrainer = null;
+    }
+
+    const recentlyBattledTrainer = this.npcController?.getTrainerById(this.recentlyBattledTrainerId);
+    if (!recentlyBattledTrainer) {
+      this.shouldIgnoreRecentTrainerEncounter = false;
+      this.recentlyBattledTrainerId = undefined;
+      return;
+    }
+
+    const distanceFromRecentTrainer = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      recentlyBattledTrainer.sprite.x,
+      recentlyBattledTrainer.sprite.y
+    );
+
+    if (distanceFromRecentTrainer > 120) {
+      this.shouldIgnoreRecentTrainerEncounter = false;
+      this.recentlyBattledTrainerId = undefined;
+    }
   }
 
   private showTrainerNotice(trainer: TrainerInstance): void {
