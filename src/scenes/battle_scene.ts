@@ -713,11 +713,26 @@ export class BattleScene extends Phaser.Scene {
     }
 
     let rewardMessage = '';
+    let levelUpLogMessage: string | undefined;
     if (result === 'win' && this.playerTrainer && this.opponentTrainer) {
+      const levelsBeforeReward = this.playerTrainer.party.map(
+        (pokemon) => pokemon.level
+      );
       const xpReward = awardExperienceForVictory(
         this.playerTrainer,
         this.opponentTrainer
       );
+      const levelUpMessages = this.playerTrainer.party
+        .map((pokemon, index) => {
+          const levelsGained = pokemon.level - levelsBeforeReward[index];
+          if (levelsGained <= 0) {
+            return undefined;
+          }
+
+          return `${pokemon.name} leveled up to Lv. ${pokemon.level}!`;
+        })
+        .filter((message): message is string => Boolean(message));
+
       setPlayerPartyProgress(
         this.playerTrainer.party.map((pokemon) => ({
           level: pokemon.level,
@@ -725,6 +740,10 @@ export class BattleScene extends Phaser.Scene {
         }))
       );
       rewardMessage = `Each party member gained ${xpReward.xpPerPokemon} XP.`;
+      if (levelUpMessages.length > 0) {
+        levelUpLogMessage = `Level Up! ${levelUpMessages.join(' ')}`;
+        rewardMessage += ` ${levelUpMessages.join(' ')}`;
+      }
 
       if (!this.opponentAlreadyDefeated) {
         const reward = applyVictoryReward(
@@ -743,7 +762,9 @@ export class BattleScene extends Phaser.Scene {
       result === 'win'
         ? `You won against ${this.opponentTrainer?.name}!`
         : `${this.opponentTrainer?.name} defeated you.`;
-    this.logText?.setText(message);
+    this.logText?.setText(
+      levelUpLogMessage ? `${message} ${levelUpLogMessage}` : message
+    );
     if (rewardMessage) {
       this.add
         .text(24, this.scale.height - 128, rewardMessage, {
