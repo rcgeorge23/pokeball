@@ -108,7 +108,10 @@ export function generateMapFromSeed(
     y: clamp(Math.floor(height / 2) + rng.nextInt(-3, 3), 1, height - 2),
   };
   const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
-  const walkableTileKeys = carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
+  carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
+  applyObstacleClusters(rng, width, height, navigationGraph, playerStart, toIndex, tiles, collision);
+  ensureSingleReachableWalkableRegion(width, height, playerStart, toIndex, tiles, collision);
+  const walkableTileKeys = collectWalkableTileKeys(width, height, toIndex, collision);
 
   const usedPoints = new Set<string>();
   const registerPoint = (point: MapPoint): void => {
@@ -191,8 +194,7 @@ function carveNavigationRoutes(
   toIndex: (x: number, y: number) => number,
   tiles: TileId[],
   collision: boolean[]
-): Set<string> {
-  const walkableTileKeys = new Set<string>();
+): void {
   const nodesById = new Map(navigationGraph.nodes.map((node) => [node.id, node]));
 
   const carveTile = (x: number, y: number, thickness: number): void => {
@@ -203,7 +205,6 @@ function carveNavigationRoutes(
         const tileIndex = toIndex(nextX, nextY);
         tiles[tileIndex] = 'grass';
         collision[tileIndex] = false;
-        walkableTileKeys.add(`${nextX},${nextY}`);
       }
     }
   };
@@ -255,7 +256,190 @@ function carveNavigationRoutes(
     carvePathSegment(bendPoint, toNode, horizontalFirst ? 'vertical' : 'horizontal', thickness);
   }
 
+}
+
+function applyObstacleClusters(
+  rng: SeededRng,
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  playerStart: MapPoint,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const protectedTiles = new Set<number>();
+  for (const node of navigationGraph.nodes) {
+    const radius = node.id === 'start' ? 2 : 1;
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        const x = clamp(node.x + offsetX, 1, width - 2);
+        const y = clamp(node.y + offsetY, 1, height - 2);
+        protectedTiles.add(toIndex(x, y));
+      }
+    }
+  }
+
+  const clusterAttempts = Math.max(6, Math.floor((width * height) / 900));
+  for (let attempt = 0; attempt < clusterAttempts; attempt += 1) {
+    const centerX = clamp(playerStart.x + rng.nextInt(-28, 28), 2, width - 3);
+    const centerY = clamp(playerStart.y + rng.nextInt(-24, 24), 2, height - 3);
+    const radius = rng.nextFloat() > 0.72 ? 2 : 1;
+    const candidateIndices: number[] = [];
+
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        const x = centerX + offsetX;
+        const y = centerY + offsetY;
+        if (x < 1 || x > width - 2 || y < 1 || y > height - 2) {
+          continue;
+        }
+
+        const index = toIndex(x, y);
+        if (protectedTiles.has(index) || collision[index]) {
+          continue;
+        }
+
+        candidateIndices.push(index);
+      }
+    }
+
+    if (candidateIndices.length === 0) {
+      continue;
+    }
+
+    for (const index of candidateIndices) {
+      collision[index] = true;
+      tiles[index] = 'obstacle';
+    }
+
+    if (!areAllMainPathNodesConnected(width, height, toIndex, collision, navigationGraph)) {
+      for (const index of candidateIndices) {
+        collision[index] = false;
+        tiles[index] = 'grass';
+      }
+    }
+  }
+}
+
+function ensureSingleReachableWalkableRegion(
+  width: number,
+  height: number,
+  playerStart: MapPoint,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const startIndex = toIndex(playerStart.x, playerStart.y);
+  const reachable = collectReachableWalkableTiles(width, height, toIndex, collision, startIndex);
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = toIndex(x, y);
+      if (!collision[index] && !reachable.has(index)) {
+        collision[index] = true;
+        tiles[index] = 'obstacle';
+      }
+    }
+  }
+}
+
+function collectWalkableTileKeys(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[]
+): Set<string> {
+  const walkableTileKeys = new Set<string>();
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = toIndex(x, y);
+      if (!collision[index]) {
+        walkableTileKeys.add(`${x},${y}`);
+      }
+    }
+  }
+
   return walkableTileKeys;
+}
+
+function areAllMainPathNodesConnected(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  navigationGraph: GeneratedMapNavigationGraph
+): boolean {
+  const startNode = navigationGraph.nodes.find((node) => node.id === 'start');
+  if (!startNode) {
+    return false;
+  }
+
+  const reachable = collectReachableWalkableTiles(
+    width,
+    height,
+    toIndex,
+    collision,
+    toIndex(startNode.x, startNode.y)
+  );
+
+  return navigationGraph.mainPathNodeIds.every((nodeId) => {
+    const node = navigationGraph.nodes.find((item) => item.id === nodeId);
+    return node ? reachable.has(toIndex(node.x, node.y)) : false;
+  });
+}
+
+function collectReachableWalkableTiles(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  startIndex: number
+): Set<number> {
+  const reachable = new Set<number>();
+  if (collision[startIndex]) {
+    return reachable;
+  }
+
+  const queue: number[] = [startIndex];
+  reachable.add(startIndex);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current === undefined) {
+      continue;
+    }
+
+    const x = current % width;
+    const y = Math.floor(current / width);
+    const neighbors: MapPoint[] = [
+      { x: x - 1, y },
+      { x: x + 1, y },
+      { x, y: y - 1 },
+      { x, y: y + 1 },
+    ];
+
+    for (const neighbor of neighbors) {
+      if (
+        neighbor.x < 1 ||
+        neighbor.x > width - 2 ||
+        neighbor.y < 1 ||
+        neighbor.y > height - 2
+      ) {
+        continue;
+      }
+
+      const neighborIndex = toIndex(neighbor.x, neighbor.y);
+      if (collision[neighborIndex] || reachable.has(neighborIndex)) {
+        continue;
+      }
+
+      reachable.add(neighborIndex);
+      queue.push(neighborIndex);
+    }
+  }
+
+  return reachable;
 }
 
 function buildNavigationGraph(
