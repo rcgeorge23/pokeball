@@ -314,6 +314,42 @@ test('generateMapFromSeed keeps required progression points reachable from spawn
   assert.ok(reachableTrainerCount >= 3);
 });
 
+test('generateMapFromSeed carves a champion arena clearing around the arena node', () => {
+  const map = generateMapFromSeed('champion-arena-clearing-seed', {
+    width: 64,
+    height: 48,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const championArenaNode = map.metadata.navigationGraph.nodes.find((node) => node.type === 'championArena');
+
+  assert.ok(championArenaNode);
+  if (!championArenaNode) {
+    throw new Error('Expected champion arena node to exist.');
+  }
+
+  let walkableArenaTiles = 0;
+  const arenaRadius = 3;
+  for (let offsetY = -arenaRadius; offsetY <= arenaRadius; offsetY += 1) {
+    for (let offsetX = -arenaRadius; offsetX <= arenaRadius; offsetX += 1) {
+      const x = championArenaNode.x + offsetX;
+      const y = championArenaNode.y + offsetY;
+      if (x < 1 || x > map.width - 2 || y < 1 || y > map.height - 2) {
+        continue;
+      }
+
+      if (Math.hypot(offsetX, offsetY) > arenaRadius + 0.2) {
+        continue;
+      }
+
+      if (!map.collision[toIndex(x, y)]) {
+        walkableArenaTiles += 1;
+      }
+    }
+  }
+
+  assert.ok(walkableArenaTiles >= 20);
+});
+
 test('generateMapFromSeed enforces spawn safety and key point spacing rules', () => {
   const map = generateMapFromSeed('spawn-safety-seed', {
     width: 64,

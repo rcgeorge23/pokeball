@@ -178,7 +178,7 @@ Done when: trainers are varied, reproducible, and persistently defeatable.
 Done when: there’s a reason to wander beyond the main route.
 
 ### 7.2 Add lightweight gating for the “end”
-- [ ] Place a “Champion Arena” area at the far end of the main path.
+- [x] Place a “Champion Arena” area at the far end of the main path. (this commit)
 - [ ] Add a simple gate condition (e.g. defeat N trainers) before arena battle.
 - [ ] Ensure the map generator always places enough trainers to satisfy the gate.
 
