@@ -131,11 +131,11 @@ This milestone prevents frustrating maps.
 Done when: every seed yields a playable world.
 
 ### 5.2 Spawn safety and collision sanity
-- [ ] Ensure player spawn is:
-  - [ ] on a walkable tile
-  - [ ] not adjacent to immediate unavoidable collision
-- [ ] Ensure trainers don’t spawn overlapping walls or each other.
-- [ ] Ensure minimum spacing between key points (avoid clutter).
+- [x] Ensure player spawn is: (this commit)
+  - [x] on a walkable tile (this commit)
+  - [x] not adjacent to immediate unavoidable collision (this commit)
+- [x] Ensure trainers don’t spawn overlapping walls or each other. (this commit)
+- [x] Ensure minimum spacing between key points (avoid clutter). (this commit)
 
 Done when: spawns are always safe and sensible.
 
