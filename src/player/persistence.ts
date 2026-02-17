@@ -2,7 +2,26 @@ import { PlayerState } from './player_model.js';
 
 const STORAGE_KEY = 'pokemon-battler-save';
 
-export function loadPlayerState(): PlayerState | null {
+export interface PersistedPlayerState {
+  position: {
+    x: number;
+    y: number;
+  };
+  defeatedTrainerIds: string[];
+  worldSeed: string;
+  worldVersion: number;
+}
+
+export function toPersistedPlayerState(state: PlayerState): PersistedPlayerState {
+  return {
+    position: state.position,
+    defeatedTrainerIds: state.defeatedTrainerIds,
+    worldSeed: state.worldSeed,
+    worldVersion: state.worldVersion,
+  };
+}
+
+export function loadPlayerState(): Partial<PlayerState> | null {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -13,11 +32,17 @@ export function loadPlayerState(): PlayerState | null {
   }
 
   try {
-    const parsed = JSON.parse(raw) as PlayerState;
+    const parsed = JSON.parse(raw) as Partial<PlayerState>;
     if (!parsed || typeof parsed !== 'object') {
       return null;
     }
-    return parsed;
+
+    return {
+      position: parsed.position,
+      defeatedTrainerIds: parsed.defeatedTrainerIds,
+      worldSeed: parsed.worldSeed,
+      worldVersion: parsed.worldVersion,
+    };
   } catch (error) {
     console.warn('Failed to parse save data.', error);
     return null;
@@ -29,5 +54,5 @@ export function savePlayerState(state: PlayerState): void {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedPlayerState(state)));
 }
