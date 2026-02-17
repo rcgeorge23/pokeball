@@ -113,7 +113,7 @@ Done when: the world has at least 2 interactive non-battle objects.
 - [x] Award XP on battle win (and partial on loss, optional). (commit in this commit)
 - [ ] On level up:
   - [x] increase stats by small increments (commit in this commit)
-  - [ ] heal a little or not (your choice, but be consistent)
+  - [x] heal a little or not (your choice, but be consistent) (commit in this commit)
   - [ ] Show “Level Up!” in battle log and in post-battle summary.
 
 Done when: Pokémon grow stronger and it’s visible.

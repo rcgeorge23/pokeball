@@ -5,6 +5,7 @@ const LEVEL_UP_HP_GAIN = 4;
 const LEVEL_UP_ATTACK_GAIN = 2;
 const LEVEL_UP_DEFENSE_GAIN = 2;
 const LEVEL_UP_SPEED_GAIN = 1;
+const LEVEL_UP_HEAL_RATIO = 0.2;
 
 export interface VictoryReward {
   pokemon: PokemonInstance;
@@ -20,12 +21,15 @@ export function applyStatLevelGains(
   levelsToGain: number
 ): void {
   for (let i = 0; i < levelsToGain; i += 1) {
+    const previousMaxHp = pokemon.maxHp;
     pokemon.level += 1;
     pokemon.maxHp += LEVEL_UP_HP_GAIN;
     pokemon.attack += LEVEL_UP_ATTACK_GAIN;
     pokemon.defense += LEVEL_UP_DEFENSE_GAIN;
     pokemon.speed += LEVEL_UP_SPEED_GAIN;
-    pokemon.hp = Math.min(pokemon.hp, pokemon.maxHp);
+
+    const healedHp = Math.ceil(previousMaxHp * LEVEL_UP_HEAL_RATIO);
+    pokemon.hp = Math.min(pokemon.hp + healedHp, pokemon.maxHp);
   }
 }
 
