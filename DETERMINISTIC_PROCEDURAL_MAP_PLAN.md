@@ -189,12 +189,12 @@ Done when: the procedural map supports a full run with a clear objective.
 ## Milestone 8: Persistence & versioning (future-proof)
 
 ### 8.1 Store only what you must
-- [ ] Persist:
-  - [ ] `worldSeed`
-  - [ ] `worldVersion`
-  - [ ] defeated trainers
-  - [ ] player position
-- [ ] Do not persist full tile arrays unless needed (regenerate from seed each boot).
+- [x] Persist: (this commit)
+  - [x] `worldSeed` (this commit)
+  - [x] `worldVersion` (this commit)
+  - [x] defeated trainers (this commit)
+  - [x] player position (this commit)
+- [x] Do not persist full tile arrays unless needed (regenerate from seed each boot). (this commit)
 
 Done when: save files stay small and stable.
 
