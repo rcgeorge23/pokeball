@@ -100,9 +100,9 @@ Done when: the world feels shaped, and traversal choices exist.
 
 ### 4.1 Biome assignment (simple, readable rules)
 - [x] Define 3–4 biomes (e.g. grass, forest, rocky, lake). (this commit)
-- [ ] Assign biomes by region using deterministic rules:
-  - [ ] e.g. distance from start, or partition map into Voronoi-like regions using seeded points
-- [ ] Ensure biome borders are blended (avoid harsh rectangles).
+- [x] Assign biomes by region using deterministic rules: (this commit)
+  - [x] e.g. distance from start, or partition map into Voronoi-like regions using seeded points (this commit)
+- [x] Ensure biome borders are blended (avoid harsh rectangles). (this commit)
 
 Done when: different areas look and feel distinct.
 
