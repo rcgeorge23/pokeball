@@ -24,6 +24,7 @@ import { generateProceduralTrainerData } from '../world/procedural_trainer_gener
 import { renderGeneratedMap } from '../world/generated_map_renderer';
 
 export class WorldScene extends Phaser.Scene {
+  private static readonly POST_BATTLE_ENCOUNTER_GRACE_MS = 1200;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: Record<string, Phaser.Input.Keyboard.Key>;
   private player?: Phaser.Physics.Arcade.Image;
@@ -68,6 +69,8 @@ export class WorldScene extends Phaser.Scene {
   private worldMessageUntil = 0;
   private recentlyBattledTrainerId?: string;
   private shouldIgnoreRecentTrainerEncounter = false;
+  private shouldApplyPostBattleEncounterGrace = false;
+  private postBattleEncounterGraceUntil = 0;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -79,6 +82,7 @@ export class WorldScene extends Phaser.Scene {
     const recentBattleTrainerId = data?.recentBattleTrainerId;
     this.recentlyBattledTrainerId = recentBattleTrainerId;
     this.shouldIgnoreRecentTrainerEncounter = Boolean(recentBattleTrainerId);
+    this.shouldApplyPostBattleEncounterGrace = Boolean(recentBattleTrainerId);
   }
 
   create(): void {
@@ -219,6 +223,14 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.setupPokedexUi();
+
+    if (this.shouldApplyPostBattleEncounterGrace) {
+      this.postBattleEncounterGraceUntil =
+        this.time.now + WorldScene.POST_BATTLE_ENCOUNTER_GRACE_MS;
+      this.shouldApplyPostBattleEncounterGrace = false;
+    } else {
+      this.postBattleEncounterGraceUntil = 0;
+    }
 
     if (import.meta.env.DEV) {
       this.setupDebugRegenerateButton(tileSize);
@@ -692,6 +704,8 @@ export class WorldScene extends Phaser.Scene {
     this.mapDragPointerId = undefined;
     this.isMapDragging = false;
     this.isCameraFollowingPlayer = true;
+    this.shouldApplyPostBattleEncounterGrace = false;
+    this.postBattleEncounterGraceUntil = 0;
   }
 
   private createBattleButton(): void {
@@ -1125,6 +1139,10 @@ export class WorldScene extends Phaser.Scene {
 
 
   private maybeStartLineOfSightEncounter(): void {
+    if (this.time.now < this.postBattleEncounterGraceUntil) {
+      return;
+    }
+
     if (
       this.lineOfSightSequenceActive ||
       !this.player ||
