@@ -89,7 +89,7 @@ export function generateMapFromSeed(
 ): GeneratedMap {
   for (let attemptIndex = 0; attemptIndex < MAX_GENERATION_ATTEMPTS; attemptIndex += 1) {
     const attemptSeed = `${String(seed)}:attempt:${attemptIndex}`;
-    const generatedMap = generateMapFromAttemptSeed(seed, attemptSeed, options);
+    const generatedMap = generateMapFromAttemptSeed(attemptSeed, options);
     const validationResult = validateGeneratedMapConnectivity(generatedMap, MIN_REACHABLE_TRAINERS);
 
     if (validationResult.ok) {
@@ -109,7 +109,6 @@ export function generateMapFromSeed(
 }
 
 function generateMapFromAttemptSeed(
-  seed: string | number,
   attemptSeed: string,
   options: GenerateMapOptions = {}
 ): GeneratedMap {
@@ -163,25 +162,61 @@ function generateMapFromAttemptSeed(
   };
   registerPoint(playerStart);
 
+  const difficultyBandByTile = assignDifficultyBands(width, height, playerStart, toIndex);
+
+  const navigationNodesById = new Map(
+    navigationGraph.nodes.map((node) => [node.id, node])
+  );
+  const healAnchorNode = navigationNodesById.get('hub') ?? navigationNodesById.get('start');
+
   const healPoint = pickUniqueWalkablePoint(rng, width, height, usedPoints, {
-    xMin: Math.max(1, playerStart.x - 5),
-    xMax: Math.min(width - 2, playerStart.x + 5),
-    yMin: Math.max(1, playerStart.y - 5),
-    yMax: Math.min(height - 2, playerStart.y + 5),
+    xMin: Math.max(1, (healAnchorNode?.x ?? playerStart.x) - 6),
+    xMax: Math.min(width - 2, (healAnchorNode?.x ?? playerStart.x) + 6),
+    yMin: Math.max(1, (healAnchorNode?.y ?? playerStart.y) - 6),
+    yMax: Math.min(height - 2, (healAnchorNode?.y ?? playerStart.y) + 6),
   }, walkableTileKeys, usedPointCoordinates, 3);
   registerPoint(healPoint);
 
   const trainerCount = Math.max(1, options.trainerCount ?? 10);
   const signCount = Math.max(1, options.signCount ?? 4);
 
-  const trainers = Array.from({ length: trainerCount }, () => {
+  const routeLikeWalkableKeys = collectWalkableTileKeysByNeighborCount(
+    width,
+    height,
+    toIndex,
+    collision,
+    2
+  );
+  const forkAndLoopKeys = collectWalkableTileKeysByNeighborCount(
+    width,
+    height,
+    toIndex,
+    collision,
+    3
+  );
+  const trainerZoneCounts = buildTrainerZoneCounts(trainerCount);
+
+  const trainerBands: DifficultyBand[] = [];
+  for (const band of ['early', 'mid', 'late'] as const) {
+    for (let index = 0; index < trainerZoneCounts[band]; index += 1) {
+      trainerBands.push(band);
+    }
+  }
+
+  const trainers = trainerBands.map((difficultyBand) => {
+    const zoneCandidates = filterPointKeysByDifficultyBand(
+      routeLikeWalkableKeys,
+      toIndex,
+      difficultyBandByTile,
+      difficultyBand
+    );
     const trainerPoint = pickUniqueWalkablePoint(
       rng,
       width,
       height,
       usedPoints,
       undefined,
-      walkableTileKeys,
+      zoneCandidates.size > 0 ? zoneCandidates : routeLikeWalkableKeys,
       usedPointCoordinates,
       2
     );
@@ -190,13 +225,14 @@ function generateMapFromAttemptSeed(
   });
 
   const signs = Array.from({ length: signCount }, () => {
+    const signCandidates = forkAndLoopKeys.size > 0 ? forkAndLoopKeys : routeLikeWalkableKeys;
     const signPoint = pickUniqueWalkablePoint(
       rng,
       width,
       height,
       usedPoints,
       undefined,
-      walkableTileKeys,
+      signCandidates,
       usedPointCoordinates,
       2
     );
@@ -218,22 +254,6 @@ function generateMapFromAttemptSeed(
     trainers,
     signs,
   });
-  const difficultyBandByTile: DifficultyBand[] = [];
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const index = toIndex(x, y);
-      const distanceFromSpawn = Math.hypot(x - playerStart.x, y - playerStart.y);
-      const normalizedDistance = distanceFromSpawn / Math.max(width, height);
-      if (normalizedDistance < 0.2) {
-        difficultyBandByTile[index] = 'early';
-      } else if (normalizedDistance < 0.45) {
-        difficultyBandByTile[index] = 'mid';
-      } else {
-        difficultyBandByTile[index] = 'late';
-      }
-    }
-  }
-
   return {
     width,
     height,
@@ -254,6 +274,117 @@ function generateMapFromAttemptSeed(
       navigationGraph,
     },
   };
+}
+
+function assignDifficultyBands(
+  width: number,
+  height: number,
+  playerStart: MapPoint,
+  toIndex: (x: number, y: number) => number
+): DifficultyBand[] {
+  const difficultyBandByTile: DifficultyBand[] = [];
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = toIndex(x, y);
+      const distanceFromSpawn = Math.hypot(x - playerStart.x, y - playerStart.y);
+      const normalizedDistance = distanceFromSpawn / Math.max(width, height);
+      if (normalizedDistance < 0.2) {
+        difficultyBandByTile[index] = 'early';
+      } else if (normalizedDistance < 0.45) {
+        difficultyBandByTile[index] = 'mid';
+      } else {
+        difficultyBandByTile[index] = 'late';
+      }
+    }
+  }
+
+  return difficultyBandByTile;
+}
+
+function collectWalkableTileKeysByNeighborCount(
+  width: number,
+  height: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  minimumWalkableOrthogonalNeighbors: number
+): Set<string> {
+  const keys = new Set<string>();
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = toIndex(x, y);
+      if (collision[index]) {
+        continue;
+      }
+
+      const neighbors = countWalkableOrthogonalNeighbors(
+        width,
+        height,
+        toIndex,
+        collision,
+        { x, y }
+      );
+
+      if (neighbors >= minimumWalkableOrthogonalNeighbors) {
+        keys.add(`${x},${y}`);
+      }
+    }
+  }
+
+  return keys;
+}
+
+function filterPointKeysByDifficultyBand(
+  keys: Set<string>,
+  toIndex: (x: number, y: number) => number,
+  difficultyBandByTile: DifficultyBand[],
+  desiredBand: DifficultyBand
+): Set<string> {
+  const filtered = new Set<string>();
+  for (const key of keys) {
+    const [xAsString, yAsString] = key.split(',');
+    const x = Number(xAsString);
+    const y = Number(yAsString);
+    if (difficultyBandByTile[toIndex(x, y)] === desiredBand) {
+      filtered.add(key);
+    }
+  }
+
+  return filtered;
+}
+
+function buildTrainerZoneCounts(trainerCount: number): Record<DifficultyBand, number> {
+  if (trainerCount <= 2) {
+    return {
+      early: 1,
+      mid: Math.max(0, trainerCount - 1),
+      late: 0,
+    };
+  }
+
+  const baseCounts: Record<DifficultyBand, number> = {
+    early: Math.max(1, Math.floor(trainerCount * 0.4)),
+    mid: Math.max(1, Math.floor(trainerCount * 0.35)),
+    late: Math.max(1, Math.floor(trainerCount * 0.25)),
+  };
+
+  let assigned = baseCounts.early + baseCounts.mid + baseCounts.late;
+  while (assigned < trainerCount) {
+    baseCounts.mid += 1;
+    assigned += 1;
+  }
+
+  while (assigned > trainerCount) {
+    if (baseCounts.mid > 1) {
+      baseCounts.mid -= 1;
+    } else if (baseCounts.early > 1) {
+      baseCounts.early -= 1;
+    } else {
+      baseCounts.late -= 1;
+    }
+    assigned -= 1;
+  }
+
+  return baseCounts;
 }
 
 function validateGeneratedMapConnectivity(

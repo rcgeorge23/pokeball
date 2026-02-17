@@ -361,3 +361,53 @@ test('generateMapFromSeed enforces spawn safety and key point spacing rules', ()
     }
   }
 });
+
+
+test('generateMapFromSeed places early/mid/late trainers by distance bands', () => {
+  const map = generateMapFromSeed('trainer-zones-seed', {
+    width: 64,
+    height: 48,
+    trainerCount: 9,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+
+  let earlyTrainers = 0;
+  let midTrainers = 0;
+  let lateTrainers = 0;
+
+  for (const trainerPoint of map.spawnPoints.trainers) {
+    const difficultyBand = map.metadata.difficultyBandByTile[toIndex(trainerPoint.x, trainerPoint.y)];
+    if (difficultyBand === 'early') {
+      earlyTrainers += 1;
+    } else if (difficultyBand === 'mid') {
+      midTrainers += 1;
+    } else {
+      lateTrainers += 1;
+    }
+  }
+
+  assert.ok(earlyTrainers >= 1);
+  assert.ok(midTrainers >= 1);
+  assert.ok(lateTrainers >= 1);
+});
+
+test('generateMapFromSeed places signposts near route forks and loops when available', () => {
+  const map = generateMapFromSeed('sign-forks-seed', {
+    width: 64,
+    height: 48,
+    signCount: 6,
+  });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+
+  for (const signPoint of map.spawnPoints.signs) {
+    const walkableNeighbors = [
+      [signPoint.x - 1, signPoint.y],
+      [signPoint.x + 1, signPoint.y],
+      [signPoint.x, signPoint.y - 1],
+      [signPoint.x, signPoint.y + 1],
+    ].filter(([x, y]) => x >= 1 && x <= map.width - 2 && y >= 1 && y <= map.height - 2)
+      .filter(([x, y]) => !map.collision[toIndex(x, y)]).length;
+
+    assert.ok(walkableNeighbors >= 2);
+  }
+});

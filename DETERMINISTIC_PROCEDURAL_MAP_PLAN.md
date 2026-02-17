@@ -144,14 +144,14 @@ Done when: spawns are always safe and sensible.
 ## Milestone 6: Content placement (trainers, heal points, signs)
 
 ### 6.1 Deterministic placement rules
-- [ ] Define placement rules by zone:
-  - [ ] early zone: easier trainers
-  - [ ] mid zone: moderate trainers
-  - [ ] late zone: hardest trainers
-- [ ] Place:
-  - [ ] 1 heal point near start (or hub)
-  - [ ] multiple trainers along/near routes and clearings
-  - [ ] a few signposts at forks/loops (basic text is fine)
+- [x] Define placement rules by zone: (this commit)
+  - [x] early zone: easier trainers (this commit)
+  - [x] mid zone: moderate trainers (this commit)
+  - [x] late zone: hardest trainers (this commit)
+- [x] Place: (this commit)
+  - [x] 1 heal point near start (or hub) (this commit)
+  - [x] multiple trainers along/near routes and clearings (this commit)
+  - [x] a few signposts at forks/loops (basic text is fine) (this commit)
 
 Done when: the map supports progression and teaches navigation.
 
