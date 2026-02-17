@@ -4,7 +4,7 @@ import {
   canTrainerSeeTarget,
   DEFAULT_TRAINER_SIGHT_OPTIONS,
   FacingDirection,
-} from './trainer_line_of_sight';
+} from './trainer_line_of_sight.js';
 
 export type TrainerBehavior = 'stationary' | 'wander';
 
@@ -282,7 +282,7 @@ export class NpcController {
         trainerPosition,
         trainer.instance.facingDirection,
         { x: player.x, y: player.y },
-        (point) => {
+        (point: Phaser.Types.Math.Vector2Like) => {
           const tile = collisionLayer.getTileAtWorldXY(point.x, point.y);
           return Boolean(tile && tile.collides);
         },
