@@ -57,6 +57,8 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.resetTransientSceneState();
+
     const { width, height } = this.scale;
     this.playerState = getPlayerState();
     const generatedMap = generateMapFromSeed(this.playerState.worldSeed);
@@ -450,6 +452,7 @@ export class WorldScene extends Phaser.Scene {
     );
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.resetTransientSceneState();
       this.touchDirections.delete('joystick');
       if (this.joystickElement) {
         this.joystickElement.style.display = 'none';
@@ -458,6 +461,15 @@ export class WorldScene extends Phaser.Scene {
     });
 
     this.createBattleButton();
+  }
+
+  private resetTransientSceneState(): void {
+    this.nearbyTrainer = null;
+    this.spottingTrainer = null;
+    this.lineOfSightSequenceActive = false;
+    this.touchDirections.clear();
+    this.worldMessage = '';
+    this.worldMessageUntil = 0;
   }
 
   private createBattleButton(): void {
