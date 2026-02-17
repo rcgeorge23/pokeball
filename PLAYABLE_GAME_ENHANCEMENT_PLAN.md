@@ -112,7 +112,7 @@ Done when: the world has at least 2 interactive non-battle objects.
 - [x] Add xpYield to Pokémon definitions (or derived from stats). (commit in this commit)
 - [x] Award XP on battle win (and partial on loss, optional). (commit in this commit)
 - [ ] On level up:
-  - [ ] increase stats by small increments
+  - [x] increase stats by small increments (commit in this commit)
   - [ ] heal a little or not (your choice, but be consistent)
   - [ ] Show “Level Up!” in battle log and in post-battle summary.
 

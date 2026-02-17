@@ -20,6 +20,7 @@ import {
 } from '../battle/battle_model';
 import {
   applyVictoryReward,
+  applyStatLevelGains,
   awardExperienceForVictory,
 } from '../battle/rewards';
 import {
@@ -111,6 +112,15 @@ export class BattleScene extends Phaser.Scene {
     const persistedPartyCondition = getPlayerPartyCondition();
     const persistedPartyProgress = getPlayerPartyProgress();
     this.playerTrainer.party.forEach((pokemon, index) => {
+      const progress = persistedPartyProgress[index];
+      if (progress) {
+        const levelsToGain = Math.max(0, progress.level - pokemon.level);
+        if (levelsToGain > 0) {
+          applyStatLevelGains(pokemon, levelsToGain);
+        }
+        pokemon.xp = progress.xp;
+      }
+
       const condition = persistedPartyCondition[index];
       if (condition) {
         pokemon.hp = Phaser.Math.Clamp(
@@ -119,12 +129,6 @@ export class BattleScene extends Phaser.Scene {
           pokemon.maxHp
         );
         pokemon.status = condition.status;
-      }
-
-      const progress = persistedPartyProgress[index];
-      if (progress) {
-        pokemon.level = progress.level;
-        pokemon.xp = progress.xp;
       }
     });
     this.opponentTrainer = createTrainerState(
