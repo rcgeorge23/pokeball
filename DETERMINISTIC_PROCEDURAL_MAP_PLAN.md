@@ -210,8 +210,8 @@ Done when: generator can evolve without breaking saves unexpectedly.
 ## Milestone 9: Tests (map quality is not optional)
 
 ### 9.1 Determinism tests
-- [ ] Same seed → same hash of key map outputs (e.g. tile counts, POI coords, trainer ids).
-- [ ] Different seed → different outputs (with high probability).
+- [x] Same seed → same hash of key map outputs (e.g. tile counts, POI coords, trainer ids). (this commit)
+- [x] Different seed → different outputs (with high probability). (this commit)
 
 Done when: determinism is provable and regressions are caught.
 
