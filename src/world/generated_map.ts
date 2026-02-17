@@ -623,11 +623,13 @@ function carveNavigationRoutes(
       continue;
     }
 
-    const thickness = edge.kind === 'main' && rng.nextFloat() > 0.55
-      ? 2
-      : rng.nextFloat() > 0.7
-        ? 1
-        : 0;
+    const thickness = edge.kind === 'main'
+      ? rng.nextFloat() > 0.35
+        ? 2
+        : 1
+      : rng.nextFloat() > 0.6
+        ? 2
+        : 1;
     const horizontalFirst = rng.nextFloat() > 0.5;
     const bendPoint: MapPoint = horizontalFirst
       ? { x: toNode.x, y: fromNode.y }
