@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  applyStatLevelGains,
+  applyXpLevelUps,
   awardExperienceForVictory,
   calculateTotalXpYield,
 } from '../src/battle/rewards.js';
@@ -88,4 +90,30 @@ test('awardExperienceForVictory grants equal XP share to player party', () => {
   assert.equal(reward.xpPerPokemon, 30);
   assert.equal(playerCopy.party[0].xp, 40);
   assert.equal(playerCopy.party[1].xp, 34);
+});
+
+test('applyStatLevelGains increases stats each gained level', () => {
+  const pokemon = structuredClone(playerTrainer.party[0]);
+
+  applyStatLevelGains(pokemon, 2);
+
+  assert.equal(pokemon.level, 3);
+  assert.equal(pokemon.maxHp, 53);
+  assert.equal(pokemon.attack, 16);
+  assert.equal(pokemon.defense, 13);
+  assert.equal(pokemon.speed, 12);
+});
+
+test('applyXpLevelUps converts XP thresholds into level and stat gains', () => {
+  const pokemon = structuredClone(playerTrainer.party[0]);
+  pokemon.xp = 205;
+
+  const levelsGained = applyXpLevelUps(pokemon);
+
+  assert.equal(levelsGained, 2);
+  assert.equal(pokemon.level, 3);
+  assert.equal(pokemon.maxHp, 53);
+  assert.equal(pokemon.attack, 16);
+  assert.equal(pokemon.defense, 13);
+  assert.equal(pokemon.speed, 12);
 });

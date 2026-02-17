@@ -1,5 +1,11 @@
 import { PokemonInstance, TrainerState } from './battle_model.js';
 
+const XP_PER_LEVEL = 100;
+const LEVEL_UP_HP_GAIN = 4;
+const LEVEL_UP_ATTACK_GAIN = 2;
+const LEVEL_UP_DEFENSE_GAIN = 2;
+const LEVEL_UP_SPEED_GAIN = 1;
+
 export interface VictoryReward {
   pokemon: PokemonInstance;
 }
@@ -7,6 +13,30 @@ export interface VictoryReward {
 export interface ExperienceReward {
   totalXp: number;
   xpPerPokemon: number;
+}
+
+export function applyStatLevelGains(
+  pokemon: PokemonInstance,
+  levelsToGain: number
+): void {
+  for (let i = 0; i < levelsToGain; i += 1) {
+    pokemon.level += 1;
+    pokemon.maxHp += LEVEL_UP_HP_GAIN;
+    pokemon.attack += LEVEL_UP_ATTACK_GAIN;
+    pokemon.defense += LEVEL_UP_DEFENSE_GAIN;
+    pokemon.speed += LEVEL_UP_SPEED_GAIN;
+    pokemon.hp = Math.min(pokemon.hp, pokemon.maxHp);
+  }
+}
+
+export function applyXpLevelUps(pokemon: PokemonInstance): number {
+  const previousLevel = pokemon.level;
+  const expectedLevel = Math.floor(pokemon.xp / XP_PER_LEVEL) + 1;
+  const levelsToGain = Math.max(0, expectedLevel - pokemon.level);
+  if (levelsToGain > 0) {
+    applyStatLevelGains(pokemon, levelsToGain);
+  }
+  return pokemon.level - previousLevel;
 }
 
 export function getLeadPokemon(trainer: TrainerState): PokemonInstance {
@@ -45,6 +75,7 @@ export function awardExperienceForVictory(
 
   player.party.forEach((pokemon) => {
     pokemon.xp += xpPerPokemon;
+    applyXpLevelUps(pokemon);
   });
 
   return {
