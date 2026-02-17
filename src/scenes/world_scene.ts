@@ -44,6 +44,16 @@ export class WorldScene extends Phaser.Scene {
   private regenerateButton?: HTMLButtonElement;
   private copySeedButton?: HTMLButtonElement;
   private toggleCollisionButton?: HTMLButtonElement;
+  private recenterButton?: HTMLButtonElement;
+  private mapDragPointerId?: number;
+  private isMapDragging = false;
+  private minimapMapBounds?: Phaser.GameObjects.Rectangle;
+  private minimapViewportRect?: Phaser.GameObjects.Rectangle;
+  private minimapPlayerDot?: Phaser.GameObjects.Arc;
+  private minimapScale = 1;
+  private worldPixelWidth = 0;
+  private worldPixelHeight = 0;
+  private isCameraFollowingPlayer = true;
   private healPointWorldPosition?: Phaser.Math.Vector2;
   private signposts: Array<{ position: Phaser.Math.Vector2; message: string }> = [];
   private pointsOfInterest: Array<{ poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 }> = [];
@@ -108,6 +118,10 @@ export class WorldScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
     this.cameras.main.startFollow(this.player);
+    this.isCameraFollowingPlayer = true;
+    this.setupTouchMapDragging();
+    this.setupRecenterButton();
+    this.setupMinimap(worldWidth, worldHeight);
 
     this.input.addPointer(2);
     this.cursors = this.input.keyboard?.createCursorKeys();
@@ -223,6 +237,8 @@ export class WorldScene extends Phaser.Scene {
     }
     velocity.scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
+    this.updateCameraTracking();
+    this.updateMinimap();
 
     this.npcController?.update(time);
     this.spottingTrainer =
@@ -537,6 +553,9 @@ export class WorldScene extends Phaser.Scene {
     this.touchDirections.clear();
     this.worldMessage = '';
     this.worldMessageUntil = 0;
+    this.mapDragPointerId = undefined;
+    this.isMapDragging = false;
+    this.isCameraFollowingPlayer = true;
   }
 
   private createBattleButton(): void {
@@ -790,6 +809,182 @@ export class WorldScene extends Phaser.Scene {
       }
       this.copySeedButton = undefined;
     });
+  }
+
+
+  private setupTouchMapDragging(): void {
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+      if (this.mapDragPointerId !== undefined || !pointer.primaryDown) {
+        return;
+      }
+
+      this.mapDragPointerId = pointer.id;
+      this.isMapDragging = false;
+    });
+
+    this.input.on(Phaser.Input.Events.POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
+      if (!this.player || this.mapDragPointerId !== pointer.id || !pointer.primaryDown) {
+        return;
+      }
+
+      if (!this.isMapDragging && pointer.getDistance() < 8) {
+        return;
+      }
+
+      this.isMapDragging = true;
+      if (this.isCameraFollowingPlayer) {
+        this.cameras.main.stopFollow();
+        this.isCameraFollowingPlayer = false;
+      }
+
+      this.cameras.main.scrollX -= pointer.position.x - pointer.prevPosition.x;
+      this.cameras.main.scrollY -= pointer.position.y - pointer.prevPosition.y;
+      this.clampCameraScroll();
+    });
+
+    const clearDragState = (pointer: Phaser.Input.Pointer) => {
+      if (this.mapDragPointerId === pointer.id) {
+        this.mapDragPointerId = undefined;
+      }
+      this.isMapDragging = false;
+    };
+
+    this.input.on(Phaser.Input.Events.POINTER_UP, clearDragState);
+    this.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, clearDragState);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off(Phaser.Input.Events.POINTER_DOWN);
+      this.input.off(Phaser.Input.Events.POINTER_MOVE);
+      this.input.off(Phaser.Input.Events.POINTER_UP, clearDragState);
+      this.input.off(Phaser.Input.Events.POINTER_UP_OUTSIDE, clearDragState);
+    });
+  }
+
+  private setupRecenterButton(): void {
+    const recenterButton = document.getElementById('recenter-button');
+    if (!recenterButton) {
+      return;
+    }
+
+    this.recenterButton = recenterButton as HTMLButtonElement;
+    this.recenterButton.style.display = 'none';
+
+    const onRecenter = () => {
+      if (!this.player) {
+        return;
+      }
+
+      this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
+      this.isCameraFollowingPlayer = true;
+      this.isMapDragging = false;
+      this.mapDragPointerId = undefined;
+      if (this.recenterButton) {
+        this.recenterButton.style.display = 'none';
+      }
+    };
+
+    this.recenterButton.addEventListener('click', onRecenter);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.recenterButton?.removeEventListener('click', onRecenter);
+      if (this.recenterButton) {
+        this.recenterButton.style.display = 'none';
+      }
+      this.recenterButton = undefined;
+    });
+  }
+
+  private updateCameraTracking(): void {
+    if (!this.player) {
+      return;
+    }
+
+    const camera = this.cameras.main;
+    const cameraCenterX = camera.scrollX + camera.width / 2;
+    const cameraCenterY = camera.scrollY + camera.height / 2;
+    const isCenteredOnPlayer =
+      Phaser.Math.Distance.Between(cameraCenterX, cameraCenterY, this.player.x, this.player.y) < this.tileSize * 0.8;
+
+    if (this.recenterButton) {
+      this.recenterButton.style.display = isCenteredOnPlayer ? 'none' : 'block';
+    }
+
+    if (!this.isCameraFollowingPlayer && isCenteredOnPlayer && !this.isMapDragging) {
+      camera.startFollow(this.player, true, 0.2, 0.2);
+      this.isCameraFollowingPlayer = true;
+    }
+  }
+
+
+  private clampCameraScroll(): void {
+    const maxScrollX = Math.max(0, this.worldPixelWidth - this.cameras.main.width);
+    const maxScrollY = Math.max(0, this.worldPixelHeight - this.cameras.main.height);
+    this.cameras.main.scrollX = Phaser.Math.Clamp(this.cameras.main.scrollX, 0, maxScrollX);
+    this.cameras.main.scrollY = Phaser.Math.Clamp(this.cameras.main.scrollY, 0, maxScrollY);
+  }
+
+  private setupMinimap(worldWidth: number, worldHeight: number): void {
+    this.worldPixelWidth = worldWidth;
+    this.worldPixelHeight = worldHeight;
+
+    const minimapWidth = 148;
+    const minimapHeight = 148;
+    const margin = 20;
+    const minimapX = this.scale.width - minimapWidth - margin;
+    const minimapY = 20;
+
+    this.minimapScale = Math.min((minimapWidth - 20) / worldWidth, (minimapHeight - 20) / worldHeight);
+
+    this.add
+      .rectangle(minimapX, minimapY, minimapWidth, minimapHeight, 0x0f172a, 0.42)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(30);
+
+    const mapDrawWidth = worldWidth * this.minimapScale;
+    const mapDrawHeight = worldHeight * this.minimapScale;
+    const mapOffsetX = minimapX + (minimapWidth - mapDrawWidth) / 2;
+    const mapOffsetY = minimapY + (minimapHeight - mapDrawHeight) / 2;
+
+    this.minimapMapBounds = this.add
+      .rectangle(mapOffsetX, mapOffsetY, mapDrawWidth, mapDrawHeight, 0x38bdf8, 0.2)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x94a3b8, 0.8)
+      .setScrollFactor(0)
+      .setDepth(31);
+
+    this.minimapViewportRect = this.add
+      .rectangle(mapOffsetX, mapOffsetY, this.cameras.main.width * this.minimapScale, this.cameras.main.height * this.minimapScale)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xf8fafc, 0.95)
+      .setFillStyle(0xffffff, 0.08)
+      .setScrollFactor(0)
+      .setDepth(32);
+
+    this.minimapPlayerDot = this.add
+      .circle(mapOffsetX, mapOffsetY, 3, 0xf97316, 0.95)
+      .setScrollFactor(0)
+      .setDepth(33);
+
+  }
+
+  private updateMinimap(): void {
+    if (!this.player || !this.minimapMapBounds || !this.minimapPlayerDot || !this.minimapViewportRect) {
+      return;
+    }
+
+    const mapX = this.minimapMapBounds.x;
+    const mapY = this.minimapMapBounds.y;
+
+    this.minimapPlayerDot.setPosition(
+      mapX + this.player.x * this.minimapScale,
+      mapY + this.player.y * this.minimapScale
+    );
+
+    this.minimapViewportRect.setPosition(
+      mapX + this.cameras.main.scrollX * this.minimapScale,
+      mapY + this.cameras.main.scrollY * this.minimapScale
+    );
   }
 
 
