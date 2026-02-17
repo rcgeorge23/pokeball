@@ -199,8 +199,8 @@ Done when: the procedural map supports a full run with a clear objective.
 Done when: save files stay small and stable.
 
 ### 8.2 World version migration behavior
-- [ ] If `worldVersion` mismatches current generator version:
-  - [ ] either regenerate with same seed using new version, or
+- [x] If `worldVersion` mismatches current generator version: (this commit: migrate to current version while keeping the same seed)
+  - [x] either regenerate with same seed using new version, or
   - [ ] start a new seed with a clear “world updated” message (pick one policy and stick to it)
 
 Done when: generator can evolve without breaking saves unexpectedly.

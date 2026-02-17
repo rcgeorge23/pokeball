@@ -26,7 +26,7 @@ test('hydratePlayerState generates world seed and version for a new game', () =>
   assert.ok(state.worldSeed.startsWith('world-'));
 });
 
-test('hydratePlayerState keeps existing world seed and version on continue', () => {
+test('hydratePlayerState keeps existing world seed and migrates to current world version on continue', () => {
   const state = hydratePlayerState({
     name: 'Player',
     party: ['emberfox'],
@@ -38,7 +38,7 @@ test('hydratePlayerState keeps existing world seed and version on continue', () 
   });
 
   assert.equal(state.worldSeed, 'world-fixed-seed');
-  assert.equal(state.worldVersion, 3);
+  assert.equal(state.worldVersion, CURRENT_WORLD_VERSION);
 });
 
 test('hydratePlayerState backfills world metadata for legacy saves', () => {

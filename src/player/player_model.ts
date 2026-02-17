@@ -129,7 +129,8 @@ export function hydratePlayerState(saved: Partial<PlayerState> | null): PlayerSt
   const worldSeed = typeof saved.worldSeed === 'string' && saved.worldSeed.length > 0
     ? saved.worldSeed
     : generateWorldSeed();
-  const worldVersion = typeof saved.worldVersion === 'number'
+  const hasSavedWorldVersion = typeof saved.worldVersion === 'number';
+  const worldVersion = hasSavedWorldVersion && saved.worldVersion === CURRENT_WORLD_VERSION
     ? saved.worldVersion
     : CURRENT_WORLD_VERSION;
 
