@@ -80,8 +80,37 @@ export interface GenerateMapOptions {
   signCount?: number;
 }
 
+const MAX_GENERATION_ATTEMPTS = 10;
+const MIN_REACHABLE_TRAINERS = 3;
+
 export function generateMapFromSeed(
   seed: string | number,
+  options: GenerateMapOptions = {}
+): GeneratedMap {
+  for (let attemptIndex = 0; attemptIndex < MAX_GENERATION_ATTEMPTS; attemptIndex += 1) {
+    const attemptSeed = `${String(seed)}:attempt:${attemptIndex}`;
+    const generatedMap = generateMapFromAttemptSeed(seed, attemptSeed, options);
+    const validationResult = validateGeneratedMapConnectivity(generatedMap, MIN_REACHABLE_TRAINERS);
+
+    if (validationResult.ok) {
+      return generatedMap;
+    }
+
+    if (isDevelopmentMode()) {
+      console.warn(
+        `Generated map validation failed for seed ${String(seed)} on attempt ${attemptIndex + 1}/${MAX_GENERATION_ATTEMPTS}: ${validationResult.reason}`
+      );
+    }
+  }
+
+  throw new Error(
+    `Unable to generate a playable map for seed ${String(seed)} after ${MAX_GENERATION_ATTEMPTS} attempts.`
+  );
+}
+
+function generateMapFromAttemptSeed(
+  seed: string | number,
+  attemptSeed: string,
   options: GenerateMapOptions = {}
 ): GeneratedMap {
   const width = options.width ?? DEFAULT_GENERATED_MAP_WIDTH;
@@ -91,7 +120,7 @@ export function generateMapFromSeed(
     throw new Error('Generated map width and height must be greater than 4 tiles.');
   }
 
-  const rng = new SeededRng(seed);
+  const rng = new SeededRng(attemptSeed);
   const tileCount = width * height;
   const tiles: TileId[] = Array.from({ length: tileCount }, () => 'obstacle');
   const collision = Array.from({ length: tileCount }, () => true);
@@ -156,14 +185,14 @@ export function generateMapFromSeed(
   });
 
   const biomeIds = GENERATED_MAP_BIOMES;
-  const biomeByTile = assignBiomesByRegion(seed, width, height, biomeIds);
-  const decorationByTile = applyDecorations(seed, width, height, collision, biomeByTile, {
+  const biomeByTile = assignBiomesByRegion(attemptSeed, width, height, biomeIds);
+  const decorationByTile = applyDecorations(attemptSeed, width, height, collision, biomeByTile, {
     playerStart,
     healPoint,
     trainers,
     signs,
   });
-  const biomeLandmarks = placeBiomeLandmarks(seed, width, height, collision, biomeByTile, decorationByTile, {
+  const biomeLandmarks = placeBiomeLandmarks(attemptSeed, width, height, collision, biomeByTile, decorationByTile, {
     playerStart,
     healPoint,
     trainers,
@@ -205,6 +234,59 @@ export function generateMapFromSeed(
       navigationGraph,
     },
   };
+}
+
+function validateGeneratedMapConnectivity(
+  map: GeneratedMap,
+  minimumReachableTrainers: number
+): { ok: true } | { ok: false; reason: string } {
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+  const startIndex = toIndex(map.spawnPoints.playerStart.x, map.spawnPoints.playerStart.y);
+
+  if (map.collision[startIndex]) {
+    return { ok: false, reason: 'Player spawn is blocked by collision.' };
+  }
+
+  const reachable = collectReachableWalkableTiles(
+    map.width,
+    map.height,
+    toIndex,
+    map.collision,
+    startIndex
+  );
+
+  const healPointIndex = toIndex(map.spawnPoints.healPoint.x, map.spawnPoints.healPoint.y);
+  if (!reachable.has(healPointIndex)) {
+    return { ok: false, reason: 'Heal point is unreachable from player spawn.' };
+  }
+
+  const championNode = map.metadata.navigationGraph.nodes.find((node) => node.type === 'championArena');
+  if (!championNode) {
+    return { ok: false, reason: 'Champion arena node is missing from navigation graph.' };
+  }
+
+  const championIndex = toIndex(championNode.x, championNode.y);
+  if (!reachable.has(championIndex)) {
+    return { ok: false, reason: 'Champion arena is unreachable from player spawn.' };
+  }
+
+  const reachableTrainerCount = map.spawnPoints.trainers.filter((trainerPoint) =>
+    reachable.has(toIndex(trainerPoint.x, trainerPoint.y))
+  ).length;
+
+  if (reachableTrainerCount < minimumReachableTrainers) {
+    return {
+      ok: false,
+      reason: `Only ${reachableTrainerCount} trainers are reachable, expected at least ${minimumReachableTrainers}.`,
+    };
+  }
+
+  return { ok: true };
+}
+
+function isDevelopmentMode(): boolean {
+  const processLike = (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process;
+  return processLike?.env?.NODE_ENV !== 'production';
 }
 
 function applyDecorations(
