@@ -1,7 +1,7 @@
 import { SeededRng } from './seeded_rng.js';
 
-export const DEFAULT_GENERATED_MAP_WIDTH = 128;
-export const DEFAULT_GENERATED_MAP_HEIGHT = 128;
+export const DEFAULT_GENERATED_MAP_WIDTH = 160;
+export const DEFAULT_GENERATED_MAP_HEIGHT = 160;
 export const CHAMPION_GATE_REQUIRED_DEFEATS = 6;
 
 export type BiomeId = 'grassland' | 'forest' | 'rocky' | 'lake';
@@ -99,7 +99,7 @@ const NODE_CLEARING_RADIUS = 2;
 const CORRIDOR_HALF_WIDTH = 2;
 const CORRIDOR_ROOM_INTERVAL = 8;
 const CORRIDOR_ROOM_HALF_SIZE = 3;
-const BUILDING_ATTEMPTS = 26;
+const BUILDING_ATTEMPTS = 30;
 const OBSTACLE_PATCH_ATTEMPTS = 24;
 const ROOM_SIZE_BY_NODE_TYPE: Record<NavigationNodeType, { width: number; height: number }> = {
   start: { width: 11, height: 11 },
@@ -1030,8 +1030,8 @@ function placeEnterableBuildings(
 
   const buildingAttempts = Math.max(BUILDING_ATTEMPTS, Math.floor((width * height) / 520));
   for (let attempt = 0; attempt < buildingAttempts; attempt += 1) {
-    const halfWidth = rng.nextInt(3, 6);
-    const halfHeight = rng.nextInt(3, 5);
+    const halfWidth = rng.nextInt(5, 9);
+    const halfHeight = rng.nextInt(5, 8);
     const centerX = rng.nextInt(halfWidth + 2, width - halfWidth - 3);
     const centerY = rng.nextInt(halfHeight + 2, height - halfHeight - 3);
 
@@ -1104,7 +1104,7 @@ function pickBuildingDoorway(
   minY: number,
   maxY: number
 ): MapPoint[] {
-  const doorwayWidth = rng.nextFloat() > 0.65 ? 2 : 1;
+  const doorwayWidth = rng.nextFloat() > 0.65 ? 3 : 2;
   const side = rng.pick(['north', 'south', 'east', 'west'] as const);
 
   if (side === 'north' || side === 'south') {
