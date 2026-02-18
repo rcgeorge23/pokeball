@@ -199,6 +199,35 @@ test('generateMapFromSeed carves walkable routes for navigation graph nodes', ()
   assert.ok(walkableTiles > Math.floor(map.width * map.height * 0.15));
 });
 
+test('generateMapFromSeed includes larger room-like clearings off corridors', () => {
+  const map = generateMapFromSeed('room-clearing-seed', { width: 64, height: 48 });
+  const toIndex = (x: number, y: number): number => y * map.width + x;
+
+  let largeOpenAreaCenters = 0;
+  for (let y = 3; y < map.height - 3; y += 1) {
+    for (let x = 3; x < map.width - 3; x += 1) {
+      if (map.collision[toIndex(x, y)]) {
+        continue;
+      }
+
+      let openTilesInNeighborhood = 0;
+      for (let offsetY = -2; offsetY <= 2; offsetY += 1) {
+        for (let offsetX = -2; offsetX <= 2; offsetX += 1) {
+          if (!map.collision[toIndex(x + offsetX, y + offsetY)]) {
+            openTilesInNeighborhood += 1;
+          }
+        }
+      }
+
+      if (openTilesInNeighborhood >= 22) {
+        largeOpenAreaCenters += 1;
+      }
+    }
+  }
+
+  assert.ok(largeOpenAreaCenters >= 10);
+});
+
 test('generateMapFromSeed keeps all walkable tiles connected to player start', () => {
   const map = generateMapFromSeed('walkable-connectivity-seed', { width: 60, height: 44 });
   const toIndex = (x: number, y: number): number => y * map.width + x;
