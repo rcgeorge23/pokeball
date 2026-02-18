@@ -95,6 +95,9 @@ export interface GenerateMapOptions {
 
 const MAX_GENERATION_ATTEMPTS = 10;
 const MIN_REACHABLE_TRAINERS = CHAMPION_GATE_REQUIRED_DEFEATS;
+const NODE_CLEARING_RADIUS = 2;
+const MAIN_ROUTE_MIN_THICKNESS = 2;
+const OPTIONAL_ROUTE_MIN_THICKNESS = 2;
 
 export function generateMapFromSeed(
   seed: string | number,
@@ -864,7 +867,7 @@ function carveNavigationRoutes(
   };
 
   for (const node of navigationGraph.nodes) {
-    const clearingRadius = rng.nextFloat() < 0.35 ? 2 : 1;
+    const clearingRadius = rng.nextFloat() < 0.35 ? NODE_CLEARING_RADIUS + 1 : NODE_CLEARING_RADIUS;
     carveTile(node.x, node.y, clearingRadius);
   }
 
@@ -877,12 +880,12 @@ function carveNavigationRoutes(
     }
 
     const thickness = edge.kind === 'main'
-      ? rng.nextFloat() > 0.35
-        ? 2
-        : 1
-      : rng.nextFloat() > 0.6
-        ? 2
-        : 1;
+      ? rng.nextFloat() > 0.45
+        ? MAIN_ROUTE_MIN_THICKNESS + 1
+        : MAIN_ROUTE_MIN_THICKNESS
+      : rng.nextFloat() > 0.7
+        ? OPTIONAL_ROUTE_MIN_THICKNESS + 1
+        : OPTIONAL_ROUTE_MIN_THICKNESS;
     const horizontalFirst = rng.nextFloat() > 0.5;
     const bendPoint: MapPoint = horizontalFirst
       ? { x: toNode.x, y: fromNode.y }
