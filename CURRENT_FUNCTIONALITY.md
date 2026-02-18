@@ -1,242 +1,422 @@
-# Current Functionality Overview
+# Current Game Functionality (Detailed Implementation Summary)
 
-This document describes the current, implemented behavior of the project as it exists today.
+This document captures the *currently implemented* behavior of the game so it can be used as planning input for the next iteration.
 
-## Product Summary
+---
 
-The app is a browser-only, Phaser 3-based top-down trainer battler prototype. The player explores a simple world, approaches NPC trainers, starts turn-based battles, and earns Pokédex entries by defeating trainers for the first time.
+## 1) High-level product shape
 
-## Runtime & Tooling
+- Browser-based Phaser 3 game with two primary runtime loops:
+  - **World exploration** (movement, interaction, trainer encounters, map systems).
+  - **Turn-based battles** (move selection, status effects, AI, XP/reward flow).
+- Core architecture is scene-driven:
+  1. `BootScene`
+  2. `PreloadScene`
+  3. `WorldScene`
+  4. `BattleScene`
 
-- **Framework/runtime:** Phaser 3 with Arcade physics.
-- **Language:** TypeScript.
-- **Build/dev server:** Vite.
-- **Persistence:** `localStorage` under key `pokemon-battler-save`.
-- **Tests:** Node built-in test runner + TypeScript compile step for joystick input utilities.
+---
 
-## Boot and Scene Flow
+## 2) Runtime, rendering, input, and startup behavior
 
-The game initializes with the following scene order:
+### Engine/runtime configuration
+
+- Phaser is configured with:
+  - `800x600` base canvas.
+  - Arcade physics (`gravity: 0`, `debug: false`).
+  - Up to 3 active pointers for touch/input support.
+  - Scene order: Boot → Preload → World → Battle.
+- Scale mode uses `FIT` and centers the game both horizontally and vertically.
+
+### Startup sequence
 
 1. **BootScene**
-   - Initializes player state from persistence.
-   - Configures responsive scaling (`FIT`) and centering.
-   - Sets camera background color.
-   - Transitions to preload.
-
+   - Initializes player state from persistence/hydration.
+   - Applies scaling and background defaults.
+   - Starts preload.
 2. **PreloadScene**
-   - Loads a placeholder player image (base64).
-   - Loads JSON data for trainers, Pokémon, and moves.
-   - Transitions to world.
+   - Loads core assets (player/trainer SVG sprites, map JSON/tiles image, trainer/pokemon/move data JSON).
+   - Starts world scene.
 
-3. **WorldScene**
-   - Main exploration loop.
-   - Handles world movement, collisions, NPC behavior, proximity interactions, and UI overlays.
+### DOM/UI shell and controls scaffold
 
-4. **BattleScene**
-   - Turn-based combat and reward flow.
-   - Returns back to world after result.
+- `index.html` provides fixed-position controls used by scenes:
+  - Touch joystick container.
+  - Battle button (primarily touch UX).
+  - Pokédex open/close panel.
+  - Re-center camera button.
+  - Dev/debug buttons (regenerate seed, copy seed, collision toggle).
+- Touch scrolling/gesture interference is suppressed using `touch-action: none`.
 
-## Game Configuration
+---
 
-- Canvas defaults to **800x600**, auto renderer selection (`Phaser.AUTO`), dark background.
-- Arcade physics has no gravity and no debug visuals.
-- Multi-touch input is enabled (`activePointers: 3`).
-- Browser touch scrolling is suppressed through CSS (`touch-action: none`).
+## 3) Player state model and persistence
 
-## World Exploration Functionality
+### State model tracked in memory
 
-### World Layout
+Current player model tracks:
 
-- World size is currently 2x the visible viewport in both axes.
-- Three rectangular obstacle walls are created as static physics objects.
-- Player and NPCs collide with walls and world bounds.
-- Camera follows the player and is clamped to world bounds.
+- Identity and party references (`name`, `party`).
+- Pokédex IDs (`pokedex`).
+- World position (`x`, `y`).
+- Defeated trainer IDs.
+- Procedural world identity (`worldSeed`, `worldVersion`).
+- Party condition snapshots (`hpRatio`, optional status).
+- Party progression snapshots (`level`, `xp`).
 
-### Player Movement
+### Initial default state
 
-Supported input methods:
+- Default trainer name: `You`.
+- Starter party: `emberfox`, `leafling`.
+- Initial Pokédex prefilled with those starters.
+- Initial position: `(400, 300)`.
+- New procedural seed generated at profile creation.
 
-- Keyboard arrows
-- `W`, `A`, `S`, `D`
-- On-screen joystick (via external JoyStick script)
+### Hydration and sanitization behavior
 
-Movement behavior:
+- Load path applies strict shape normalization:
+  - Non-array or invalid lists are replaced with defaults.
+  - Invalid status values are dropped.
+  - Levels/xp are clamped and normalized.
+  - Missing/invalid `worldSeed` regenerates seed.
+  - `worldVersion` is forced to current version.
 
-- Inputs are combined into a vector.
-- Vector is normalized when magnitude exceeds 1 to keep diagonal speed consistent.
-- Final movement uses a fixed speed scalar.
+### Important persistence limitation (current behavior)
 
-### Touch Controls
+- The localStorage persistence layer intentionally stores only:
+  - `position`
+  - `defeatedTrainerIds`
+  - `worldSeed`
+  - `worldVersion`
+- It does **not** persist full player model fields (e.g., pokedex, party condition, party progress) across browser reload in the save payload.
+- Save key: `pokemon-battler-save`.
 
-- A joystick container in DOM is populated when WorldScene starts.
-- Joystick callback data is converted into movement vectors via utility parsing that supports:
-  - Numeric and string axis values.
-  - Multiple key aliases (`x`, `X`, `posX`, `positionX`, etc.).
-  - Direction-label fallback (`north`, `se`, `left`, etc.) with optional distance scalar.
-- On scene shutdown, joystick UI is hidden and listeners/state are cleaned up.
+---
 
-### NPC Trainers in World
+## 4) Procedural world generation and map systems
 
-- Trainers spawn from `src/data/trainers.json`.
-- Each trainer has:
-  - `id`
-  - `name`
-  - `party` (Pokémon IDs)
-  - `behavior` (`wander` or `stationary`)
-  - world `x/y`
-- Wander behavior picks random cardinal/idle directions on periodic delays.
-- Defeated trainers are tinted and display a `Defeated` status label.
+### Core generation profile
 
-### Trainer Interaction
+- World map is generated from seed each run via `generateMapFromSeed`.
+- Default map dimensions are large (`160x160` tiles).
+- Generation retries up to a capped attempt count when playability validation fails.
 
-- Nearby trainer detection is based on distance radius from player.
-- If a trainer is nearby:
-  - Keyboard hint appears (`Press E to battle...` or rematch message if defeated).
-  - On touch devices, a `Battle <Name>` button is shown.
-- Battles can be initiated by:
-  - Pressing `E` when near a trainer.
-  - Tapping the battle button on touch devices.
+### Guaranteed/validated playability constraints
 
-### Pokédex UI (World Overlay)
+Generation includes validation to ensure:
 
-- A persistent `Open Pokédex` button is available in the DOM.
-- Clicking opens an overlay panel with current Pokédex entries.
-- Pokémon IDs are mapped to display names from loaded Pokémon data.
-- Empty-state message: `No Pokémon discovered yet.`
-- Overlay includes a close button and ARIA hidden-state toggling.
+- Spawn tile is not blocked and has usable neighboring space.
+- Heal point is reachable from spawn.
+- Champion arena node exists and is reachable.
+- Key points (spawn/heal/trainers/signs/POIs) obey minimum spacing.
+- Minimum reachable trainer threshold is satisfied (tied to champion gate requirement).
 
-## Battle Functionality
+### Navigation and authored procedural structure
 
-### Battle Setup
+- Map assembly includes systems for:
+  - Navigation graph creation (start/hub/boss-gate/champion/encounter/loot node types).
+  - Route and corridor carving.
+  - Obstacle clustering/smoothing.
+  - Building placement and champion arena shaping.
+  - Reconnection pass for unreachable navigation nodes.
+  - Single-region reachability cleanup.
 
-When a battle starts, WorldScene passes:
+### Difficulty zoning
 
-- Player trainer name + party from current player state.
-- Opponent trainer id, name, and party from selected NPC.
-- Whether opponent is already defeated (for rematch reward rules).
+- Each tile is assigned a difficulty band (`early`, `mid`, `late`) based on distance from spawn.
+- Trainer placement and trainer party synthesis draw from this banding.
 
-BattleScene then:
+### Biomes/decor
 
-- Builds lookup indexes for Pokémon and move definitions.
-- Creates runtime Pokémon instances from definitions.
-- Initializes lead Pokémon on both sides.
-- Renders:
-  - Battle title
-  - Placeholder sprites (player/opponent tint differentiation)
-  - Status panels for names and HP
-  - Move buttons for the active player Pokémon
+- Tiles are annotated with biome metadata (`grassland`, `forest`, `rocky`, `lake`).
+- Decoration layers are generated (tufts, flowers, rocks, trees, ruins, etc.).
+- Biome landmarks are placed for flavor/world readability.
 
-### Turn System
+### Spawned interactive points
 
-- Player picks one move from active Pokémon move list.
-- Damage formula:
-  - `max(1, floor(move.power + attacker.attack - defender.defense))`
-- Opponent move is selected randomly from its active Pokémon move list.
-- Turn resolution includes short delays for readability.
+Generated spawn data includes:
 
-### Multi-Pokémon Handling
+- Player start.
+- Heal point.
+- Trainers.
+- Sign posts.
+- Points of interest:
+  - Shortcut gate landmark.
+  - Scenic landmark.
 
-- If active opponent Pokémon faints and opponent has another, next opponent Pokémon is sent out.
-- If active player Pokémon faints and player has another, next player Pokémon is sent out.
-- If no remaining Pokémon on one side:
-  - Player win or loss is finalized.
+### Map rendering pipeline
 
-### Battle End and Continue Flow
+- Procedural map is rendered through a generated Phaser tilemap.
+- Layers:
+  - Ground layer.
+  - Decoration layer.
+  - Collision layer.
+- Collision layer is used for physics and hidden by default (can be toggled in dev mode).
+- Tileset texture is procedurally generated at runtime (solid-color swatches per tile/decor type).
 
-- Move buttons are disabled at battle end.
-- Result message displayed in battle log area.
-- A `Continue` button returns to WorldScene.
+---
 
-### Reward Rules
+## 5) World exploration gameplay
 
-On **win against a trainer not already defeated**:
+### Player movement and controls
 
-- Player receives opponent lead Pokémon (first party slot) into Pokédex.
-- Trainer is marked as defeated in player state.
-- Reward text appears: `You received: <PokemonName>`.
+- Supported input paths:
+  - Keyboard arrows.
+  - `WASD`.
+  - On-screen joystick (JoyStick library script in page).
+- Input vectors are accumulated and normalized for consistent diagonal speed.
+- Movement speed is fixed at runtime constant in world scene.
 
-On rematch wins (already defeated trainers):
+### Touch joystick parsing robustness
 
-- No additional reward is granted.
+- Joystick direction parser supports:
+  - Multiple shape/key aliases for axis fields.
+  - Numeric/string values.
+  - Direction-word fallback handling.
+- Touch direction state is attached and cleaned on scene shutdown.
 
-## Player State and Persistence
+### Camera and minimap systems
 
-### State Shape
+- Main camera follows player by default and is bounded to world.
+- Touch drag on map can temporarily detach camera follow and pan view.
+- Re-center UI button appears when camera drifts away from player.
+- Minimap UI shows:
+  - Total map bounds.
+  - Player dot position.
+  - Current camera viewport rectangle.
 
-Current player state tracks:
+### Environmental interaction systems
 
-- Name
-- Party (Pokémon IDs used in battles)
-- Pokédex (owned/discovered IDs)
-- Position (`x/y`)
-- Defeated trainer IDs
+- **Heal point:**
+  - If player stands still on heal tile long enough, party is healed.
+  - Heal has cooldown and displays world message feedback.
+- **Signposts:**
+  - Nearby hint prompts interaction.
+  - Pressing interact displays short dialogue bubble message.
+- **Points of interest:**
+  - Nearby hint prompts interaction.
+  - Pressing interact displays POI title + description bubble.
+- **Champion arena marker:**
+  - Visible special marker and gating hint messaging.
 
-### Defaults
+### Champion gate progression
 
-New/default profile starts with:
+- Champion challenge is blocked until player defeats required generated trainer count (`6`).
+- Arena interaction messaging reflects:
+  - Progress toward unlock.
+  - Unlock state.
+  - Rematch state when champion already defeated.
+- Champion opponent is procedurally generated from world seed with:
+  - Seeded champion name choice.
+  - Up to 3 unique species sampled from loaded pokémon list (with fallback set).
 
-- Name: `You`
-- Party: `emberfox`, `leafling`
-- Pokédex prefilled with the starting two Pokémon
-- Position: `(400, 300)`
+---
 
-### Save/Load Behavior
+## 6) Trainer/NPC systems in world
 
-- On boot, state is loaded from local storage if present and valid JSON.
-- Invalid save JSON is ignored with a console warning.
-- State is saved:
-  - Every ~1.5 seconds during world updates (position persistence).
-  - Immediately when Pokédex is updated.
-  - Immediately when trainer defeat status changes.
-  - Before entering battle from world.
+### Trainer instantiation
 
-## Data Content Currently Shipped
+- Trainers are procedurally instantiated at generated trainer spawn points.
+- Base templates come from `trainers.json`, but runtime trainer instances are regenerated per world seed and spawn location.
+- Generated trainer identity uses stable hashed IDs tied to seed/index/location.
 
-### Pokémon Definitions
+### Behavior and facing
 
-- `emberfox`
-- `leafling`
-- `sparko`
+- Trainer behavior types:
+  - `wander`
+  - `stationary`
+- Wanderers periodically choose random cardinal or idle vectors.
+- Trainers carry/update facing direction (used by LOS detection).
 
-Each has base stats and move IDs.
+### Defeat-state visuals
 
-### Move Definitions
+- Defeated trainers are tinted and receive visible `Defeated` status label.
 
-- `tackle`
-- `ember`
-- `leaf_blade`
-- `spark`
+### Proximity and interaction
 
-Each move currently only has `id`, `name`, and `power`.
+- Nearby trainer within radius enables hint text and battle interaction.
+- Keyboard interaction key is `E`.
+- Touch battle button appears contextually when applicable.
 
-### Trainer Definitions
+### Line-of-sight encounter system
 
-Three trainers are configured:
+- Trainers can auto-engage player if:
+  - Player is within LOS max distance.
+  - Player is within trainer forward cone (dot threshold).
+  - Collision layer does not block sampled LOS ray.
+  - Trainer is undefeated.
+- Encounter sequence:
+  - Exclamation notice above trainer.
+  - Scripted approach movement toward player.
+  - Auto battle start after approach completes.
 
-- Ava (`wander`)
-- Rowan (`stationary`)
-- Kai (`wander`)
+### Post-battle encounter grace
 
-Each has a two-Pokémon party.
+- On returning from battle, there is a temporary grace window to avoid immediate re-trigger.
+- Scene also temporarily suppresses the recently battled trainer until player moves sufficiently far away.
 
-## Test Coverage Present Today
+---
 
-Automated tests currently focus on joystick parsing utilities:
+## 7) Battle systems and turn resolution
 
-- Axis reading from numeric/string payloads.
-- Axis normalization behavior.
-- Direction derivation from axis values.
-- Direction fallback by label + distance.
-- Null direction when centered.
-- Case-insensitive direction label parsing.
+### Battle setup
 
-## Current Limitations / Scope Boundaries
+- Battle scene receives `player` and `opponent` payloads from world.
+- Pokémon and move definitions are indexed from JSON cache.
+- Runtime party instances are built from definitions.
+- Persisted in-memory condition/progress are applied to player party at battle start.
 
-- No online or backend features (client-only).
-- No type effectiveness/status effects/accuracy/critical hits.
-- No animations beyond basic UI/state transitions.
-- No explicit speed-order turn priority despite speed stat existing.
-- No inventory/items/capture mechanics.
-- No complex map system or tilemap-driven world.
-- Uses placeholder sprite image for player and trainers.
+### UI layout and battle affordances
+
+- Battle UI includes:
+  - Opponent title header.
+  - Sprite avatars (generated from SVG by pokémon data).
+  - HP bars + HP text.
+  - Status text (Healthy/Burned/Poisoned/Paralyzed).
+  - Move buttons based on current active player pokemon moves.
+  - Exit Battle button.
+
+### Turn order and action model
+
+- On player move selection:
+  - Opponent move chosen by expected-damage AI (with configurable second-best randomness).
+  - First actor determined by effective speed.
+  - Paralysis reduces effective speed.
+  - Speed ties are randomized.
+
+### Move hit/damage/status details
+
+- Accuracy, crit chance, and crit multiplier are supported per move.
+- Type chart currently defined for Fire/Grass/Electric/Normal interactions.
+- Damage formula includes:
+  - Move power.
+  - Attack-defense delta.
+  - Burn attack penalty for burned attackers.
+  - Type multiplier.
+  - Crit multiplier when crit occurs.
+  - Global battle-side assist multiplier (dynamic rubber-banding by defeated trainer count).
+- Status inflictions supported:
+  - Burn
+  - Poison
+  - Paralyze
+- Status side-effects:
+  - Burn lowers attacker damage output.
+  - Paralyze can prevent action (chance-based) and reduces effective speed.
+  - Poison ticks at end of turn for % max HP.
+
+### AI behavior
+
+- Opponent AI ranks moves by expected damage (`damage * accuracy`).
+- AI can intentionally choose second-best move sometimes for variety.
+- Second-best choice chance scales with player average level (more forgiving early).
+- Optional AI debug logging can be enabled via query param/localStorage (`debugAiChoice`).
+
+### Mid-battle progression
+
+- If active pokemon faints and side has reserves, next pokemon auto-sends out.
+- HP bars animate when values change.
+- Basic attack/hit/crit visual feedback exists (lunges, flashes, shake effects).
+
+### Battle end states
+
+- End result can be win or loss.
+- On both outcomes, party is healed before returning to world.
+- Continue button returns to world; includes recent trainer ID for encounter suppression.
+- Exit Battle button allows leaving early (non-resolving state only), heals party, and returns to world.
+
+---
+
+## 8) Rewards, progression, and difficulty assist
+
+### Victory rewards
+
+On win:
+
+- XP is awarded to all player party members based on opponent total `xpYield` split across party.
+- Level-up processing applies stat gains:
+  - HP, attack, defense, speed increase per level.
+  - Partial heal on level-up.
+- Progress snapshot is written back to player model (`partyProgress`).
+
+### Pokédex reward rule
+
+- First-time trainer defeat awards opponent lead pokemon to pokédex.
+- Rematch wins do not re-award this pokédex unlock.
+
+### Trainer defeat tracking
+
+- First victory against a trainer marks trainer as defeated in player model.
+- Defeated list drives world tint/status and champion-gate progression.
+
+### Dynamic battle assist curve
+
+- Early progression favors player damage output and nerfs opponent output.
+- As defeated trainer count rises, multipliers converge toward neutral values.
+
+---
+
+## 9) Pokédex UX
+
+- Floating `Open Pokédex` button available in world.
+- Panel displays discovered entries by mapped pokemon name.
+- Empty state: `No Pokémon discovered yet.`
+- Panel supports close interaction and ARIA hidden-state toggling.
+
+---
+
+## 10) Development and debug affordances
+
+(Visible in dev builds where enabled.)
+
+- **Regenerate map button:** creates new world seed and restarts world at new spawn.
+- **Copy seed button:** copies seed to clipboard (or logs to console fallback).
+- **Collision toggle button:** reveals/hides collision layer overlay for debugging map traversal.
+- **Seed/version display:** current seed and world version shown in world HUD during dev.
+
+---
+
+## 11) Data currently shipped
+
+### Pokémon roster (9)
+
+- emberfox
+- leafling
+- sparko
+- tidemunk
+- bouldercub
+- gustwing
+- shadepup
+- frostkit
+- petaloon
+
+### Moves (5)
+
+- tackle
+- ember (burn chance)
+- leaf_blade
+- spark (paralyze chance)
+- venom_jab (poison chance)
+
+### Trainer templates (3)
+
+- Ava
+- Rowan
+- Kai
+
+These template entries provide seed material for procedural trainer generation and party species derivation by difficulty band.
+
+---
+
+## 12) Automated checks that define/guard current behavior
+
+Current test suite covers core systems including:
+
+- Seeded RNG determinism.
+- Generated map determinism/playability/performance sampling.
+- Trainer LOS logic.
+- Procedural trainer generation determinism and constraints.
+- Battle model mechanics (accuracy/crit/type/status/speed/AI move selection/assist multiplier).
+- Reward logic and XP leveling.
+- Player model hydration/sanitization and persistence field constraints.
+- Joystick input parsing behavior.
+
