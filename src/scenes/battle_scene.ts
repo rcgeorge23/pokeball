@@ -82,6 +82,8 @@ export class BattleScene extends Phaser.Scene {
   private playerPokemonIndex = 0;
   private opponentPokemonIndex = 0;
 
+  private readonly inputActivationEventNames = ['pointerdown', 'pointerup'] as const;
+
   constructor() {
     super('BattleScene');
   }
@@ -368,8 +370,17 @@ export class BattleScene extends Phaser.Scene {
         new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
         Phaser.Geom.Rectangle.Contains
       );
-      container.on('pointerdown', () => this.handlePlayerMove(move));
+      this.bindButtonActivation(container, () => this.handlePlayerMove(move));
       this.moveButtons.push(container);
+    });
+  }
+
+  private bindButtonActivation(
+    button: Phaser.GameObjects.Container,
+    handler: () => void
+  ): void {
+    this.inputActivationEventNames.forEach((eventName) => {
+      button.on(eventName, handler);
     });
   }
 
@@ -830,7 +841,7 @@ export class BattleScene extends Phaser.Scene {
       new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
-    container.on('pointerdown', continueBattle);
+    this.bindButtonActivation(container, continueBattle);
     this.continueButton = container;
     this.isResolving = false;
   }
