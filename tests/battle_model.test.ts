@@ -9,6 +9,7 @@ import {
   doesParalysisPreventAction,
   doesStatusInflictApply,
   getTypeEffectivenessMultiplier,
+  getBattleDamageMultiplier,
   getEffectiveSpeed,
   getPoisonTickDamage,
   isCriticalHit,
@@ -249,6 +250,21 @@ test('pickBestMoveByExpectedDamage can pick second-best move for variety', () =>
   const selectedMove = pickBestMoveByExpectedDamage(aiPokemon, defender, () => 0.05);
 
   assert.equal(selectedMove.id, 'heavy-slam');
+});
+
+
+test('getBattleDamageMultiplier boosts player damage early and tapers over time', () => {
+  assert.equal(getBattleDamageMultiplier('player', 0), 1.35);
+  assert.equal(getBattleDamageMultiplier('player', 4), 1.175);
+  assert.equal(getBattleDamageMultiplier('player', 8), 1);
+  assert.equal(getBattleDamageMultiplier('player', 20), 1);
+});
+
+test('getBattleDamageMultiplier reduces opponent damage early and restores it over time', () => {
+  assert.equal(getBattleDamageMultiplier('opponent', 0), 0.7);
+  assert.equal(getBattleDamageMultiplier('opponent', 4), 0.85);
+  assert.equal(getBattleDamageMultiplier('opponent', 8), 1);
+  assert.equal(getBattleDamageMultiplier('opponent', 20), 1);
 });
 
 test('getTypeEffectivenessMultiplier uses Fire/Grass/Electric/Normal chart rules', () => {
