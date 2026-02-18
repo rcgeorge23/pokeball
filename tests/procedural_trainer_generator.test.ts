@@ -76,8 +76,8 @@ test('generateProceduralTrainerData scales generated party size by zone difficul
   });
 
   const [earlyTrainer, midTrainer, lateTrainer] = generated;
-  assert.ok(earlyTrainer.party.length >= 1 && earlyTrainer.party.length <= 2);
-  assert.ok(midTrainer.party.length >= 2 && midTrainer.party.length <= 3);
+  assert.equal(earlyTrainer.party.length, 1);
+  assert.ok(midTrainer.party.length >= 1 && midTrainer.party.length <= 2);
   assert.equal(lateTrainer.party.length, 3);
 
   for (const trainer of generated) {

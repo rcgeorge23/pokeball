@@ -132,8 +132,8 @@ function buildPartyForBand(
   speciesByBand: Record<DifficultyBand, string[]>
 ): string[] {
   const sizeRangeByBand: Record<DifficultyBand, [number, number]> = {
-    early: [1, 2],
-    mid: [2, 3],
+    early: [1, 1],
+    mid: [1, 2],
     late: [3, 3],
   };
 
