@@ -25,6 +25,10 @@ import {
   awardExperienceForVictory,
 } from '../battle/rewards';
 import {
+  createPokemonAvatarSvgDataUri,
+  getPokemonAvatarTextureKey,
+} from '../battle/pokemon_avatar';
+import {
   addPokemonToPokedex,
   getPlayerState,
   getPlayerPartyCondition,
@@ -166,13 +170,13 @@ export class BattleScene extends Phaser.Scene {
 
     this.playerSprite = this.add
       .image(this.scale.width * 0.25, this.scale.height * 0.55, 'player')
-      .setScale(6)
-      .setTint(0x38bdf8);
+      .setScale(2.2);
 
     this.opponentSprite = this.add
       .image(this.scale.width * 0.75, this.scale.height * 0.3, 'player')
-      .setScale(6)
-      .setTint(0xf97316);
+      .setScale(2.2);
+
+    this.refreshPokemonSprites();
 
     this.renderStatusPanels();
     this.renderMoveButtons();
@@ -291,8 +295,48 @@ export class BattleScene extends Phaser.Scene {
 
     this.playerNameText.setText(this.playerPokemon.name);
     this.opponentNameText.setText(this.opponentPokemon.name);
+    this.refreshPokemonSprites();
     this.updateStatusTexts();
     this.updateHpBars();
+  }
+
+  private refreshPokemonSprites(): void {
+    if (!this.playerPokemon || !this.opponentPokemon) {
+      return;
+    }
+
+    this.applyPokemonAvatarTexture(this.playerPokemon, 'player', this.playerSprite);
+    this.applyPokemonAvatarTexture(
+      this.opponentPokemon,
+      'opponent',
+      this.opponentSprite
+    );
+  }
+
+  private applyPokemonAvatarTexture(
+    pokemon: PokemonInstance,
+    side: 'player' | 'opponent',
+    sprite?: Phaser.GameObjects.Image
+  ): void {
+    if (!sprite) {
+      return;
+    }
+
+    const textureKey = `${getPokemonAvatarTextureKey(pokemon.id)}-${side}`;
+    if (this.textures.exists(textureKey)) {
+      sprite.setTexture(textureKey);
+      return;
+    }
+
+    const dataUri = createPokemonAvatarSvgDataUri(pokemon, side);
+    this.textures.addBase64(textureKey, dataUri);
+    const onTextureAdd = (addedTextureKey: string): void => {
+      if (addedTextureKey === textureKey) {
+        sprite.setTexture(textureKey);
+        this.textures.off(Phaser.Textures.Events.ADD, onTextureAdd);
+      }
+    };
+    this.textures.on(Phaser.Textures.Events.ADD, onTextureAdd);
   }
 
   private updateStatusTexts(): void {
