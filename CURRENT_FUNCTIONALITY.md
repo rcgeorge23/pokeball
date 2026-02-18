@@ -152,7 +152,7 @@ Generated spawn data includes:
   - Decoration layer.
   - Collision layer.
 - Collision layer is used for physics and hidden by default (can be toggled in dev mode).
-- Tileset texture is procedurally generated at runtime (solid-color swatches per tile/decor type).
+- Tileset texture is procedurally generated at runtime from handcrafted SVG sources for grass/dirt + edge transitions, then packed into a Phaser atlas with deterministic grass↔dirt autotiling (priority N > E > S > W).
 
 ---
 

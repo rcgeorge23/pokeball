@@ -1,11 +1,15 @@
 import Phaser from 'phaser';
 
+import { enqueueSvgTileset } from '../world/tiles/svgTileset.js';
+
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super('PreloadScene');
   }
 
   preload(): void {
+    enqueueSvgTileset(this);
+
     this.load.svg('player', 'assets/sprites/player.svg');
     this.load.svg('trainer', 'assets/sprites/trainer.svg');
     this.load.tilemapTiledJSON('town-route-map', 'assets/maps/town_route.json');
