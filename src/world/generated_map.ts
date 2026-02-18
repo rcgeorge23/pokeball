@@ -96,8 +96,15 @@ export interface GenerateMapOptions {
 const MAX_GENERATION_ATTEMPTS = 10;
 const MIN_REACHABLE_TRAINERS = CHAMPION_GATE_REQUIRED_DEFEATS;
 const NODE_CLEARING_RADIUS = 2;
-const MAIN_ROUTE_MIN_THICKNESS = 2;
-const OPTIONAL_ROUTE_MIN_THICKNESS = 2;
+const CORRIDOR_HALF_WIDTH = 1;
+const ROOM_SIZE_BY_NODE_TYPE: Record<NavigationNodeType, { width: number; height: number }> = {
+  start: { width: 7, height: 7 },
+  hub: { width: 9, height: 9 },
+  bossGate: { width: 7, height: 7 },
+  championArena: { width: 11, height: 9 },
+  encounter: { width: 7, height: 7 },
+  loot: { width: 6, height: 6 },
+};
 
 export function generateMapFromSeed(
   seed: string | number,
@@ -834,12 +841,26 @@ function carveNavigationRoutes(
 ): void {
   const nodesById = new Map(navigationGraph.nodes.map((node) => [node.id, node]));
 
-  const carveTile = (x: number, y: number, thickness: number): void => {
-    for (let offsetY = -thickness; offsetY <= thickness; offsetY += 1) {
-      for (let offsetX = -thickness; offsetX <= thickness; offsetX += 1) {
+  const carveTile = (x: number, y: number, halfWidth: number): void => {
+    for (let offsetY = -halfWidth; offsetY <= halfWidth; offsetY += 1) {
+      for (let offsetX = -halfWidth; offsetX <= halfWidth; offsetX += 1) {
         const nextX = clamp(x + offsetX, 1, width - 2);
         const nextY = clamp(y + offsetY, 1, height - 2);
         const tileIndex = toIndex(nextX, nextY);
+        tiles[tileIndex] = 'grass';
+        collision[tileIndex] = false;
+      }
+    }
+  };
+
+  const carveRoom = (center: MapPoint, widthInTiles: number, heightInTiles: number): void => {
+    const halfWidth = Math.max(1, Math.floor(widthInTiles / 2));
+    const halfHeight = Math.max(1, Math.floor(heightInTiles / 2));
+    for (let offsetY = -halfHeight; offsetY <= halfHeight; offsetY += 1) {
+      for (let offsetX = -halfWidth; offsetX <= halfWidth; offsetX += 1) {
+        const x = clamp(center.x + offsetX, 1, width - 2);
+        const y = clamp(center.y + offsetY, 1, height - 2);
+        const tileIndex = toIndex(x, y);
         tiles[tileIndex] = 'grass';
         collision[tileIndex] = false;
       }
@@ -850,24 +871,33 @@ function carveNavigationRoutes(
     from: MapPoint,
     to: MapPoint,
     axis: 'horizontal' | 'vertical',
-    thickness: number
+    halfWidth: number
   ): void => {
     if (axis === 'horizontal') {
       const direction = from.x <= to.x ? 1 : -1;
       for (let x = from.x; x !== to.x + direction; x += direction) {
-        carveTile(x, from.y, thickness);
+        carveTile(x, from.y, halfWidth);
       }
       return;
     }
 
     const direction = from.y <= to.y ? 1 : -1;
     for (let y = from.y; y !== to.y + direction; y += direction) {
-      carveTile(from.x, y, thickness);
+      carveTile(from.x, y, halfWidth);
     }
   };
 
   for (const node of navigationGraph.nodes) {
-    const clearingRadius = rng.nextFloat() < 0.35 ? NODE_CLEARING_RADIUS + 1 : NODE_CLEARING_RADIUS;
+    const baseRoomSize = ROOM_SIZE_BY_NODE_TYPE[node.type];
+    const widthVariation = rng.nextInt(-1, 1);
+    const heightVariation = rng.nextInt(-1, 1);
+    carveRoom(
+      node,
+      baseRoomSize.width + widthVariation,
+      baseRoomSize.height + heightVariation
+    );
+
+    const clearingRadius = rng.nextFloat() < 0.25 ? NODE_CLEARING_RADIUS + 1 : NODE_CLEARING_RADIUS;
     carveTile(node.x, node.y, clearingRadius);
   }
 
@@ -879,20 +909,21 @@ function carveNavigationRoutes(
       continue;
     }
 
-    const thickness = edge.kind === 'main'
-      ? rng.nextFloat() > 0.45
-        ? MAIN_ROUTE_MIN_THICKNESS + 1
-        : MAIN_ROUTE_MIN_THICKNESS
-      : rng.nextFloat() > 0.7
-        ? OPTIONAL_ROUTE_MIN_THICKNESS + 1
-        : OPTIONAL_ROUTE_MIN_THICKNESS;
     const horizontalFirst = rng.nextFloat() > 0.5;
     const bendPoint: MapPoint = horizontalFirst
       ? { x: toNode.x, y: fromNode.y }
       : { x: fromNode.x, y: toNode.y };
 
-    carvePathSegment(fromNode, bendPoint, horizontalFirst ? 'horizontal' : 'vertical', thickness);
-    carvePathSegment(bendPoint, toNode, horizontalFirst ? 'vertical' : 'horizontal', thickness);
+    carvePathSegment(fromNode, bendPoint, horizontalFirst ? 'horizontal' : 'vertical', CORRIDOR_HALF_WIDTH);
+    carvePathSegment(bendPoint, toNode, horizontalFirst ? 'vertical' : 'horizontal', CORRIDOR_HALF_WIDTH);
+
+    if (edge.kind === 'optional' && rng.nextFloat() > 0.5) {
+      carveRoom(
+        bendPoint,
+        5 + rng.nextInt(0, 1) * 2,
+        5 + rng.nextInt(0, 1) * 2
+      );
+    }
   }
 
 }
