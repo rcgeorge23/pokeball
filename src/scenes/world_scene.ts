@@ -25,6 +25,8 @@ import { renderGeneratedMap } from '../world/generated_map_renderer';
 
 export class WorldScene extends Phaser.Scene {
   private static readonly POST_BATTLE_ENCOUNTER_GRACE_MS = 1200;
+  private static readonly HEAL_WAIT_DURATION_MS = 700;
+  private static readonly HEAL_WAIT_COOLDOWN_MS = 1800;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private moveKeys?: Record<string, Phaser.Input.Keyboard.Key>;
   private player?: Phaser.Physics.Arcade.Image;
@@ -61,6 +63,7 @@ export class WorldScene extends Phaser.Scene {
   private worldPixelHeight = 0;
   private isCameraFollowingPlayer = true;
   private healPointWorldPosition?: Phaser.Math.Vector2;
+  private healPointTile?: { x: number; y: number };
   private signposts: Array<{ position: Phaser.Math.Vector2; message: string }> = [];
   private pointsOfInterest: Array<{ poi: GeneratedMapPointOfInterest; position: Phaser.Math.Vector2 }> = [];
   private championArenaWorldPosition?: Phaser.Math.Vector2;
@@ -71,6 +74,8 @@ export class WorldScene extends Phaser.Scene {
   private shouldIgnoreRecentTrainerEncounter = false;
   private shouldApplyPostBattleEncounterGrace = false;
   private postBattleEncounterGraceUntil = 0;
+  private lastPlayerMovementTime = 0;
+  private lastWaitHealTime = Number.NEGATIVE_INFINITY;
   private readonly isTouchDevice =
     'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -105,6 +110,10 @@ export class WorldScene extends Phaser.Scene {
       generatedMap.spawnPoints.healPoint.x * tileSize + tileSize / 2,
       generatedMap.spawnPoints.healPoint.y * tileSize + tileSize / 2
     );
+    this.healPointTile = {
+      x: generatedMap.spawnPoints.healPoint.x,
+      y: generatedMap.spawnPoints.healPoint.y,
+    };
     this.signposts = generatedMap.spawnPoints.signs.map((signPoint, index) => ({
       position: new Phaser.Math.Vector2(
         signPoint.x * tileSize + tileSize / 2,
@@ -270,13 +279,20 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const magnitude = velocity.length();
+    const isPlayerMoving = magnitude > 0.01;
     if (magnitude > 1) {
       velocity.normalize();
     }
     velocity.scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
+
+    if (isPlayerMoving) {
+      this.lastPlayerMovementTime = time;
+    }
+
     this.updateCameraTracking();
     this.updateMinimap();
+    this.tryHealPlayerPartyWhileWaiting(time, isPlayerMoving);
 
     this.npcController?.update(time);
     this.spottingTrainer =
@@ -314,7 +330,7 @@ export class WorldScene extends Phaser.Scene {
             : `Press E to battle ${this.nearbyTrainer.definition.name}`
         );
       } else if (nearHealPoint) {
-        this.hintText.setText('Press E to heal your team');
+        this.hintText.setText('Wait on the spring tile to heal your team');
       } else if (this.isPlayerNearChampionArena()) {
         this.hintText.setText(this.getChampionArenaHint());
       } else if (this.getNearbySignpost()) {
@@ -335,7 +351,6 @@ export class WorldScene extends Phaser.Scene {
         this.startNearbyBattle();
       } else {
         this.tryChallengeChampionArena();
-        this.tryHealPlayerParty(time);
         this.tryReadNearbySignpost();
         this.tryInspectNearbyPointOfInterest();
       }
@@ -376,6 +391,17 @@ export class WorldScene extends Phaser.Scene {
     ) <= this.tileSize * 1.15;
   }
 
+  private isPlayerOnHealPointTile(): boolean {
+    if (!this.player || !this.healPointTile) {
+      return false;
+    }
+
+    return (
+      Math.floor(this.player.x / this.tileSize) === this.healPointTile.x
+      && Math.floor(this.player.y / this.tileSize) === this.healPointTile.y
+    );
+  }
+
   private getNearbySignpost(): { position: Phaser.Math.Vector2; message: string } | null {
     if (!this.player) {
       return null;
@@ -394,10 +420,21 @@ export class WorldScene extends Phaser.Scene {
     );
   }
 
-  private tryHealPlayerParty(currentTime: number): void {
-    if (!this.isPlayerNearHealPoint()) {
+  private tryHealPlayerPartyWhileWaiting(currentTime: number, isPlayerMoving: boolean): void {
+    if (!this.isPlayerOnHealPointTile() || isPlayerMoving) {
       return;
     }
+
+    const waitingDuration = currentTime - this.lastPlayerMovementTime;
+    if (waitingDuration < WorldScene.HEAL_WAIT_DURATION_MS) {
+      return;
+    }
+
+    if (currentTime - this.lastWaitHealTime < WorldScene.HEAL_WAIT_COOLDOWN_MS) {
+      return;
+    }
+
+    this.lastWaitHealTime = currentTime;
 
     healPlayerParty();
     this.worldMessage = 'Your team is fully healed!';
@@ -706,6 +743,9 @@ export class WorldScene extends Phaser.Scene {
     this.isCameraFollowingPlayer = true;
     this.shouldApplyPostBattleEncounterGrace = false;
     this.postBattleEncounterGraceUntil = 0;
+    this.lastPlayerMovementTime = 0;
+    this.lastWaitHealTime = Number.NEGATIVE_INFINITY;
+    this.healPointTile = undefined;
   }
 
   private createBattleButton(): void {
