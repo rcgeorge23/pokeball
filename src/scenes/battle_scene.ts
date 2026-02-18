@@ -383,7 +383,9 @@ export class BattleScene extends Phaser.Scene {
 
     const opponentMove = pickBestMoveByExpectedDamage(
       this.opponentPokemon,
-      this.playerPokemon
+      this.playerPokemon,
+      Math.random,
+      this.getOpponentSecondBestMoveChance()
     );
     this.logAiMoveChoice(opponentMove);
     const firstActor = decideFirstActor(
@@ -418,6 +420,28 @@ export class BattleScene extends Phaser.Scene {
         }
       });
     });
+  }
+
+  private getOpponentSecondBestMoveChance(): number {
+    if (!this.playerTrainer) {
+      return 0.1;
+    }
+
+    const totalLevels = this.playerTrainer.party.reduce(
+      (sum, pokemon) => sum + pokemon.level,
+      0
+    );
+    const averageLevel = totalLevels / Math.max(1, this.playerTrainer.party.length);
+
+    if (averageLevel <= 3) {
+      return 0.65;
+    }
+
+    if (averageLevel <= 5) {
+      return 0.35;
+    }
+
+    return 0.15;
   }
 
   private applyEndOfTurnStatuses(): 'continue' | 'switching' | 'ended' {
