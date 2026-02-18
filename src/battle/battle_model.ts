@@ -247,10 +247,10 @@ export function getBattleDamageMultiplier(
   const progression = Math.min(1, clampedDefeatedTrainerCount / clampedMaxAssistBattles);
 
   if (attackerSide === 'player') {
-    return 1.35 - progression * 0.35;
+    return 1.45 - progression * 0.45;
   }
 
-  return 0.7 + progression * 0.3;
+  return 0.6 + progression * 0.4;
 }
 
 export function getTypeEffectivenessMultiplier(
