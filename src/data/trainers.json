@@ -2,7 +2,7 @@
   {
     "id": "trainer-park-1",
     "name": "Ava",
-    "party": ["emberfox", "leafling"],
+    "party": ["emberfox", "leafling", "tidemunk"],
     "behavior": "wander",
     "facing": "left",
     "x": 320,
@@ -11,7 +11,7 @@
   {
     "id": "trainer-park-2",
     "name": "Rowan",
-    "party": ["leafling", "sparko"],
+    "party": ["leafling", "sparko", "gustwing"],
     "behavior": "stationary",
     "facing": "down",
     "x": 820,
@@ -20,7 +20,7 @@
   {
     "id": "trainer-park-3",
     "name": "Kai",
-    "party": ["sparko", "emberfox"],
+    "party": ["sparko", "shadepup", "bouldercub"],
     "behavior": "wander",
     "facing": "up",
     "x": 600,

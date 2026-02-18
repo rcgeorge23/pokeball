@@ -18,9 +18,9 @@ const DEFAULT_NAME_POOL: Record<DifficultyBand, string[]> = {
 };
 
 const DEFAULT_SPECIES_BY_BAND: Record<DifficultyBand, string[]> = {
-  early: ['leafling', 'sparko'],
-  mid: ['leafling', 'sparko', 'emberfox'],
-  late: ['emberfox', 'sparko', 'leafling'],
+  early: ['leafling', 'sparko', 'petaloon', 'gustwing'],
+  mid: ['leafling', 'sparko', 'emberfox', 'tidemunk', 'shadepup'],
+  late: ['emberfox', 'sparko', 'leafling', 'bouldercub', 'frostkit', 'tidemunk'],
 };
 
 export function generateProceduralTrainerData(
