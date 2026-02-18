@@ -1,15 +1,12 @@
 import Phaser from 'phaser';
 
-const PLAYER_DATA_URI =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAAM0lEQVQoU2NkYGD4z0AEMDEwMDD8T2JgYGBg+P//PwMDA8M/AwMDAwMAAAVoA3sJd8CRAAAAAElFTkSuQmCC';
-
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super('PreloadScene');
   }
 
   preload(): void {
-    this.load.image('player', PLAYER_DATA_URI);
+    this.load.svg('player', 'assets/sprites/player.svg');
     this.load.svg('trainer', 'assets/sprites/trainer.svg');
     this.load.tilemapTiledJSON('town-route-map', 'assets/maps/town_route.json');
     this.load.image('town-tiles', 'assets/tilesets/town_tiles.png');
