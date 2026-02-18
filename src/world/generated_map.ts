@@ -176,6 +176,7 @@ function generateMapFromAttemptSeed(
   const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
   carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
   applyObstacleClusters(rng, width, height, navigationGraph, playerStart, toIndex, tiles, collision);
+  smoothObstacleArtifacts(width, height, navigationGraph, toIndex, tiles, collision);
   carveChampionArenaArea(width, height, navigationGraph, toIndex, tiles, collision);
   ensureSingleReachableWalkableRegion(width, height, playerStart, toIndex, tiles, collision);
   const walkableTileKeys = collectWalkableTileKeys(width, height, toIndex, collision);
@@ -948,17 +949,12 @@ function applyObstacleClusters(
   tiles: TileId[],
   collision: boolean[]
 ): void {
-  const protectedTiles = new Set<number>();
-  for (const node of navigationGraph.nodes) {
-    const radius = node.id === 'start' ? 2 : 1;
-    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
-      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
-        const x = clamp(node.x + offsetX, 1, width - 2);
-        const y = clamp(node.y + offsetY, 1, height - 2);
-        protectedTiles.add(toIndex(x, y));
-      }
-    }
-  }
+  const protectedTiles = collectProtectedNavigationTileIndices(
+    width,
+    height,
+    navigationGraph,
+    toIndex
+  );
 
   const clusterAttempts = Math.max(6, Math.floor((width * height) / 900));
   for (let attempt = 0; attempt < clusterAttempts; attempt += 1) {
@@ -1000,6 +996,76 @@ function applyObstacleClusters(
       }
     }
   }
+}
+
+function smoothObstacleArtifacts(
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const protectedTiles = collectProtectedNavigationTileIndices(
+    width,
+    height,
+    navigationGraph,
+    toIndex
+  );
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    const nextCollision = [...collision];
+
+    for (let y = 1; y < height - 1; y += 1) {
+      for (let x = 1; x < width - 1; x += 1) {
+        const index = toIndex(x, y);
+        if (protectedTiles.has(index)) {
+          continue;
+        }
+
+        const cardinalBlockedNeighbors = [
+          toIndex(x - 1, y),
+          toIndex(x + 1, y),
+          toIndex(x, y - 1),
+          toIndex(x, y + 1),
+        ].reduce((count, neighborIndex) => count + (collision[neighborIndex] ? 1 : 0), 0);
+
+        if (collision[index] && cardinalBlockedNeighbors <= 1) {
+          nextCollision[index] = false;
+        }
+
+        if (!collision[index] && cardinalBlockedNeighbors >= 3) {
+          nextCollision[index] = true;
+        }
+      }
+    }
+
+    for (let index = 0; index < collision.length; index += 1) {
+      collision[index] = nextCollision[index];
+      tiles[index] = collision[index] ? 'obstacle' : 'grass';
+    }
+  }
+}
+
+function collectProtectedNavigationTileIndices(
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number
+): Set<number> {
+  const protectedTiles = new Set<number>();
+  for (const node of navigationGraph.nodes) {
+    const radius = node.id === 'start' ? 2 : 1;
+    for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+        const x = clamp(node.x + offsetX, 1, width - 2);
+        const y = clamp(node.y + offsetY, 1, height - 2);
+        protectedTiles.add(toIndex(x, y));
+      }
+    }
+  }
+
+  return protectedTiles;
 }
 
 function ensureSingleReachableWalkableRegion(
