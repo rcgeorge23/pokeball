@@ -54,7 +54,7 @@ class TrainerActor {
       this.instance.sprite.setTint(0x94a3b8);
       this.instance.statusLabel.setText('Defeated').setVisible(true);
     } else {
-      this.instance.sprite.setTint(0xf97316);
+      this.instance.sprite.clearTint();
       this.instance.statusLabel.setVisible(false);
     }
   }
@@ -148,10 +148,9 @@ export class NpcController {
       const sprite = this.scene.physics.add.image(
         definition.x,
         definition.y,
-        'player'
+        'trainer'
       );
-      sprite.setScale(4);
-      sprite.setTint(0xf97316);
+      sprite.setScale(3);
       sprite.setCollideWorldBounds(true);
 
       const statusLabel = this.scene.add

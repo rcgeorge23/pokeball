@@ -10,6 +10,7 @@ export class PreloadScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('player', PLAYER_DATA_URI);
+    this.load.svg('trainer', 'assets/sprites/trainer.svg');
     this.load.tilemapTiledJSON('town-route-map', 'assets/maps/town_route.json');
     this.load.image('town-tiles', 'assets/tilesets/town_tiles.png');
     this.load.json(
