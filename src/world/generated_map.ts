@@ -99,6 +99,8 @@ const NODE_CLEARING_RADIUS = 2;
 const CORRIDOR_HALF_WIDTH = 2;
 const CORRIDOR_ROOM_INTERVAL = 8;
 const CORRIDOR_ROOM_HALF_SIZE = 3;
+const BUILDING_ATTEMPTS = 26;
+const OBSTACLE_PATCH_ATTEMPTS = 24;
 const ROOM_SIZE_BY_NODE_TYPE: Record<NavigationNodeType, { width: number; height: number }> = {
   start: { width: 11, height: 11 },
   hub: { width: 15, height: 13 },
@@ -146,8 +148,8 @@ function generateMapFromAttemptSeed(
 
   const rng = new SeededRng(attemptSeed);
   const tileCount = width * height;
-  const tiles: TileId[] = Array.from({ length: tileCount }, () => 'obstacle');
-  const collision = Array.from({ length: tileCount }, () => true);
+  const tiles: TileId[] = Array.from({ length: tileCount }, () => 'grass');
+  const collision = Array.from({ length: tileCount }, () => false);
 
   const toIndex = (x: number, y: number): number => y * width + x;
 
@@ -175,9 +177,19 @@ function generateMapFromAttemptSeed(
   };
   const navigationGraph = buildNavigationGraph(rng, width, height, playerStart);
   carveNavigationRoutes(rng, width, height, navigationGraph, toIndex, tiles, collision);
+  placeEnterableBuildings(rng, width, height, navigationGraph, toIndex, tiles, collision);
   applyObstacleClusters(rng, width, height, navigationGraph, playerStart, toIndex, tiles, collision);
   smoothObstacleArtifacts(width, height, navigationGraph, toIndex, tiles, collision);
   carveChampionArenaArea(width, height, navigationGraph, toIndex, tiles, collision);
+  reconnectUnreachableNavigationNodes(
+    width,
+    height,
+    playerStart,
+    navigationGraph,
+    toIndex,
+    tiles,
+    collision
+  );
   ensureSingleReachableWalkableRegion(width, height, playerStart, toIndex, tiles, collision);
   const walkableTileKeys = collectWalkableTileKeys(width, height, toIndex, collision);
 
@@ -956,11 +968,11 @@ function applyObstacleClusters(
     toIndex
   );
 
-  const clusterAttempts = Math.max(6, Math.floor((width * height) / 900));
+  const clusterAttempts = Math.max(OBSTACLE_PATCH_ATTEMPTS, Math.floor((width * height) / 96));
   for (let attempt = 0; attempt < clusterAttempts; attempt += 1) {
-    const centerX = clamp(playerStart.x + rng.nextInt(-28, 28), 2, width - 3);
-    const centerY = clamp(playerStart.y + rng.nextInt(-24, 24), 2, height - 3);
-    const radius = rng.nextFloat() > 0.72 ? 2 : 1;
+    const centerX = clamp(playerStart.x + rng.nextInt(-54, 54), 2, width - 3);
+    const centerY = clamp(playerStart.y + rng.nextInt(-54, 54), 2, height - 3);
+    const radius = rng.nextFloat() > 0.8 ? 2 : 1;
     const candidateIndices: number[] = [];
 
     for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
@@ -976,7 +988,9 @@ function applyObstacleClusters(
           continue;
         }
 
-        candidateIndices.push(index);
+        if (rng.nextFloat() < 0.56) {
+          candidateIndices.push(index);
+        }
       }
     }
 
@@ -996,6 +1010,114 @@ function applyObstacleClusters(
       }
     }
   }
+}
+
+function placeEnterableBuildings(
+  rng: SeededRng,
+  width: number,
+  height: number,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const protectedTiles = collectProtectedNavigationTileIndices(
+    width,
+    height,
+    navigationGraph,
+    toIndex
+  );
+
+  const buildingAttempts = Math.max(BUILDING_ATTEMPTS, Math.floor((width * height) / 520));
+  for (let attempt = 0; attempt < buildingAttempts; attempt += 1) {
+    const halfWidth = rng.nextInt(3, 6);
+    const halfHeight = rng.nextInt(3, 5);
+    const centerX = rng.nextInt(halfWidth + 2, width - halfWidth - 3);
+    const centerY = rng.nextInt(halfHeight + 2, height - halfHeight - 3);
+
+    const minX = centerX - halfWidth;
+    const maxX = centerX + halfWidth;
+    const minY = centerY - halfHeight;
+    const maxY = centerY + halfHeight;
+
+    if (doesFootprintContainProtectedTile(minX, maxX, minY, maxY, toIndex, collision, protectedTiles)) {
+      continue;
+    }
+
+    const modifiedIndices: number[] = [];
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        const isPerimeter = x === minX || x === maxX || y === minY || y === maxY;
+        const index = toIndex(x, y);
+        if (isPerimeter) {
+          collision[index] = true;
+          tiles[index] = 'obstacle';
+        } else {
+          collision[index] = false;
+          tiles[index] = 'grass';
+        }
+        modifiedIndices.push(index);
+      }
+    }
+
+    const doorway = pickBuildingDoorway(rng, minX, maxX, minY, maxY);
+    for (const point of doorway) {
+      const doorwayIndex = toIndex(point.x, point.y);
+      collision[doorwayIndex] = false;
+      tiles[doorwayIndex] = 'grass';
+    }
+
+    if (!areAllMainPathNodesConnected(width, height, toIndex, collision, navigationGraph)) {
+      for (const index of modifiedIndices) {
+        collision[index] = false;
+        tiles[index] = 'grass';
+      }
+    }
+  }
+}
+
+function doesFootprintContainProtectedTile(
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+  toIndex: (x: number, y: number) => number,
+  collision: boolean[],
+  protectedTiles: Set<number>
+): boolean {
+  for (let y = minY - 1; y <= maxY + 1; y += 1) {
+    for (let x = minX - 1; x <= maxX + 1; x += 1) {
+      const index = toIndex(x, y);
+      if (protectedTiles.has(index) || collision[index]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function pickBuildingDoorway(
+  rng: SeededRng,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number
+): MapPoint[] {
+  const doorwayWidth = rng.nextFloat() > 0.65 ? 2 : 1;
+  const side = rng.pick(['north', 'south', 'east', 'west'] as const);
+
+  if (side === 'north' || side === 'south') {
+    const y = side === 'north' ? minY : maxY;
+    const centerX = Math.floor((minX + maxX) / 2);
+    const startX = doorwayWidth === 2 ? centerX : centerX;
+    return Array.from({ length: doorwayWidth }, (_, index) => ({ x: startX + index, y }));
+  }
+
+  const x = side === 'west' ? minX : maxX;
+  const centerY = Math.floor((minY + maxY) / 2);
+  const startY = doorwayWidth === 2 ? centerY : centerY;
+  return Array.from({ length: doorwayWidth }, (_, index) => ({ x, y: startY + index }));
 }
 
 function smoothObstacleArtifacts(
@@ -1087,6 +1209,53 @@ function ensureSingleReachableWalkableRegion(
         tiles[index] = 'obstacle';
       }
     }
+  }
+}
+
+function reconnectUnreachableNavigationNodes(
+  width: number,
+  height: number,
+  playerStart: MapPoint,
+  navigationGraph: GeneratedMapNavigationGraph,
+  toIndex: (x: number, y: number) => number,
+  tiles: TileId[],
+  collision: boolean[]
+): void {
+  const startIndex = toIndex(playerStart.x, playerStart.y);
+  if (collision[startIndex]) {
+    return;
+  }
+
+  const carveTile = (x: number, y: number): void => {
+    const nextX = clamp(x, 1, width - 2);
+    const nextY = clamp(y, 1, height - 2);
+    const index = toIndex(nextX, nextY);
+    collision[index] = false;
+    tiles[index] = 'grass';
+  };
+
+  let reachable = collectReachableWalkableTiles(width, height, toIndex, collision, startIndex);
+  for (const node of navigationGraph.nodes) {
+    const nodeIndex = toIndex(node.x, node.y);
+    if (reachable.has(nodeIndex)) {
+      continue;
+    }
+
+    let currentX = node.x;
+    let currentY = node.y;
+    carveTile(currentX, currentY);
+
+    while (currentX !== playerStart.x) {
+      currentX += currentX < playerStart.x ? 1 : -1;
+      carveTile(currentX, currentY);
+    }
+
+    while (currentY !== playerStart.y) {
+      currentY += currentY < playerStart.y ? 1 : -1;
+      carveTile(currentX, currentY);
+    }
+
+    reachable = collectReachableWalkableTiles(width, height, toIndex, collision, startIndex);
   }
 }
 

@@ -228,6 +228,14 @@ test('generateMapFromSeed includes larger room-like clearings off corridors', ()
   assert.ok(largeOpenAreaCenters >= 10);
 });
 
+test('generateMapFromSeed keeps the map mostly open with scattered obstacles', () => {
+  const map = generateMapFromSeed('open-space-layout-seed', { width: 64, height: 48 });
+  const walkableTiles = map.collision.filter((isBlocked) => !isBlocked).length;
+  const totalTiles = map.width * map.height;
+
+  assert.ok(walkableTiles / totalTiles > 0.55);
+});
+
 test('generateMapFromSeed keeps all walkable tiles connected to player start', () => {
   const map = generateMapFromSeed('walkable-connectivity-seed', { width: 60, height: 44 });
   const toIndex = (x: number, y: number): number => y * map.width + x;
