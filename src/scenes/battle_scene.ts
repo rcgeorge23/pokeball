@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {
   buildIndex,
   calculateDamage,
+  getBattleDamageMultiplier,
   pickBestMoveByExpectedDamage,
   createTrainerState,
   decideFirstActor,
@@ -25,6 +26,7 @@ import {
 } from '../battle/rewards';
 import {
   addPokemonToPokedex,
+  getPlayerState,
   getPlayerPartyCondition,
   getPlayerPartyProgress,
   isTrainerDefeated,
@@ -82,6 +84,7 @@ export class BattleScene extends Phaser.Scene {
   private aiDebugLoggingEnabled = false;
   private playerPokemonIndex = 0;
   private opponentPokemonIndex = 0;
+  private defeatedTrainerCountAtBattleStart = 0;
 
   private readonly inputActivationEventNames = ['pointerdown', 'pointerup'] as const;
 
@@ -99,6 +102,8 @@ export class BattleScene extends Phaser.Scene {
       (this.opponentTrainerId
         ? isTrainerDefeated(this.opponentTrainerId)
         : false);
+    this.defeatedTrainerCountAtBattleStart =
+      getPlayerState().defeatedTrainerIds.length;
 
     const pokemonData =
       (this.cache.json.get('pokemon') as PokemonDefinition[]) ?? [];
@@ -200,6 +205,14 @@ export class BattleScene extends Phaser.Scene {
     this.opponentAlreadyDefeated = false;
     this.playerPokemonIndex = 0;
     this.opponentPokemonIndex = 0;
+    this.defeatedTrainerCountAtBattleStart = 0;
+  }
+
+  private getDamageMultiplier(attackerSide: 'player' | 'opponent'): number {
+    return getBattleDamageMultiplier(
+      attackerSide,
+      this.defeatedTrainerCountAtBattleStart
+    );
   }
 
   private renderStatusPanels(): void {
@@ -639,7 +652,13 @@ export class BattleScene extends Phaser.Scene {
       move.type,
       defender.types
     );
-    const damage = calculateDamage(attacker, defender, move, crit);
+    const damage = Math.max(
+      1,
+      Math.floor(
+        calculateDamage(attacker, defender, move, crit)
+          * this.getDamageMultiplier(attackerSide)
+      )
+    );
     const feedback: string[] = [];
     if (crit) {
       this.cameras.main.shake(

@@ -59,6 +59,7 @@ export interface TrainerState {
 }
 
 export type TurnOrder = 'a' | 'b';
+export type BattleSide = 'player' | 'opponent';
 
 export type TypeEffectivenessChart = Record<string, Record<string, number>>;
 
@@ -234,6 +235,22 @@ export function calculateExpectedDamage(
   move: BattleMove
 ): number {
   return calculateDamage(attacker, defender, move) * move.accuracy;
+}
+
+export function getBattleDamageMultiplier(
+  attackerSide: BattleSide,
+  defeatedTrainerCount: number,
+  maxAssistBattles = 8
+): number {
+  const clampedDefeatedTrainerCount = Math.max(0, Math.floor(defeatedTrainerCount));
+  const clampedMaxAssistBattles = Math.max(1, Math.floor(maxAssistBattles));
+  const progression = Math.min(1, clampedDefeatedTrainerCount / clampedMaxAssistBattles);
+
+  if (attackerSide === 'player') {
+    return 1.35 - progression * 0.35;
+  }
+
+  return 0.7 + progression * 0.3;
 }
 
 export function getTypeEffectivenessMultiplier(
