@@ -74,6 +74,7 @@ export class BattleScene extends Phaser.Scene {
   private opponentSprite?: Phaser.GameObjects.Image;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private continueButton?: Phaser.GameObjects.Container;
+  private exitButton?: Phaser.GameObjects.Container;
   private isResolving = false;
   private sfxEnabled = true;
   private opponentTrainerId?: string;
@@ -170,6 +171,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.renderStatusPanels();
     this.renderMoveButtons();
+    this.renderExitButton();
     this.updateHpBars();
 
     this.logText = this.add
@@ -186,6 +188,8 @@ export class BattleScene extends Phaser.Scene {
     this.clearMoveButtons();
     this.continueButton?.destroy();
     this.continueButton = undefined;
+    this.exitButton?.destroy();
+    this.exitButton = undefined;
     this.playerTrainer = undefined;
     this.opponentTrainer = undefined;
     this.playerPokemon = undefined;
@@ -373,6 +377,56 @@ export class BattleScene extends Phaser.Scene {
       this.bindButtonActivation(container, () => this.handlePlayerMove(move));
       this.moveButtons.push(container);
     });
+  }
+
+  private renderExitButton(): void {
+    const buttonWidth = 132;
+    const buttonHeight = 44;
+    const x = this.scale.width - buttonWidth - 24;
+    const y = this.scale.height - buttonHeight - 170;
+
+    const button = this.add
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0x991b1b)
+      .setOrigin(0)
+      .setStrokeStyle(2, 0x7f1d1d);
+    const label = this.add.text(20, 13, 'Exit Battle', {
+      fontSize: '14px',
+      color: '#fee2e2',
+    });
+
+    this.exitButton?.destroy();
+    const container = this.add.container(x, y, [button, label]);
+    container.setSize(buttonWidth, buttonHeight);
+    container.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+    this.bindButtonActivation(container, () => this.exitBattle());
+    this.exitButton = container;
+  }
+
+  private exitBattle(): void {
+    if (this.isResolving || !this.playerTrainer) {
+      return;
+    }
+
+    this.persistPlayerPartyCondition();
+    this.scene.start('WorldScene', {
+      recentBattleTrainerId: this.opponentTrainerId,
+    });
+  }
+
+  private persistPlayerPartyCondition(): void {
+    if (!this.playerTrainer) {
+      return;
+    }
+
+    setPlayerPartyCondition(
+      this.playerTrainer.party.map((pokemon) => ({
+        hpRatio: pokemon.maxHp > 0 ? pokemon.hp / pokemon.maxHp : 0,
+        status: pokemon.status,
+      }))
+    );
   }
 
   private bindButtonActivation(
@@ -738,14 +792,7 @@ export class BattleScene extends Phaser.Scene {
     this.setButtonsEnabled(false);
     this.clearMoveButtons();
 
-    if (this.playerTrainer) {
-      setPlayerPartyCondition(
-        this.playerTrainer.party.map((pokemon) => ({
-          hpRatio: pokemon.maxHp > 0 ? pokemon.hp / pokemon.maxHp : 0,
-          status: pokemon.status,
-        }))
-      );
-    }
+    this.persistPlayerPartyCondition();
 
     let rewardMessage = '';
     let levelUpLogMessage: string | undefined;
@@ -834,6 +881,8 @@ export class BattleScene extends Phaser.Scene {
     };
 
     this.continueButton?.destroy();
+    this.exitButton?.destroy();
+    this.exitButton = undefined;
     const container = this.add.container(x, y, [button, label]);
     container.setSize(buttonWidth, buttonHeight);
     container.setDepth(10);
@@ -898,6 +947,13 @@ export class BattleScene extends Phaser.Scene {
         button.input.enabled = enabled;
       }
     });
+
+    if (this.exitButton) {
+      this.exitButton.setAlpha(enabled ? 1 : 0.5);
+      if (this.exitButton.input) {
+        this.exitButton.input.enabled = enabled;
+      }
+    }
   }
 
   private playSfx(name: 'hit' | 'faint'): void {
