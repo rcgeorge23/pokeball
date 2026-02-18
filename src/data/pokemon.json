@@ -37,5 +37,83 @@
     "defense": 7,
     "speed": 13,
     "moves": ["tackle", "spark", "venom_jab"]
+  },
+  {
+    "id": "tidemunk",
+    "name": "Tidemunk",
+    "types": ["Water"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 33,
+    "hp": 50,
+    "attack": 11,
+    "defense": 9,
+    "speed": 10,
+    "moves": ["tackle", "spark"]
+  },
+  {
+    "id": "bouldercub",
+    "name": "Bouldercub",
+    "types": ["Rock"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 36,
+    "hp": 58,
+    "attack": 11,
+    "defense": 12,
+    "speed": 6,
+    "moves": ["tackle", "venom_jab"]
+  },
+  {
+    "id": "gustwing",
+    "name": "Gustwing",
+    "types": ["Flying"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 31,
+    "hp": 42,
+    "attack": 11,
+    "defense": 8,
+    "speed": 15,
+    "moves": ["tackle", "leaf_blade"]
+  },
+  {
+    "id": "shadepup",
+    "name": "Shadepup",
+    "types": ["Dark"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 35,
+    "hp": 47,
+    "attack": 14,
+    "defense": 8,
+    "speed": 12,
+    "moves": ["tackle", "venom_jab"]
+  },
+  {
+    "id": "frostkit",
+    "name": "Frostkit",
+    "types": ["Ice"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 34,
+    "hp": 46,
+    "attack": 12,
+    "defense": 9,
+    "speed": 11,
+    "moves": ["tackle", "spark"]
+  },
+  {
+    "id": "petaloon",
+    "name": "Petaloon",
+    "types": ["Grass"],
+    "level": 1,
+    "xp": 0,
+    "xpYield": 30,
+    "hp": 45,
+    "attack": 9,
+    "defense": 11,
+    "speed": 12,
+    "moves": ["tackle", "leaf_blade"]
   }
 ]

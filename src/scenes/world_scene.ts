@@ -629,10 +629,17 @@ export class WorldScene extends Phaser.Scene {
     const championSeed = `${this.playerState.worldSeed}:champion-arena`;
     const championRng = new SeededRng(championSeed);
     const championNamePool = ['Champion Ione', 'Champion Rhea', 'Champion Kael'];
-    const speciesPool = ['emberfox', 'sparko', 'leafling'];
+    const pokemonData =
+      (this.cache.json.get('pokemon') as { id?: string }[] | undefined) ?? [];
+    const speciesPool = pokemonData
+      .map((pokemon) => pokemon.id)
+      .filter((pokemonId): pokemonId is string => typeof pokemonId === 'string');
 
     const championParty: string[] = [];
-    const availableSpecies = [...speciesPool];
+    const availableSpecies =
+      speciesPool.length > 0
+        ? [...speciesPool]
+        : ['emberfox', 'sparko', 'leafling'];
     while (championParty.length < 3 && availableSpecies.length > 0) {
       const index = championRng.nextInt(0, availableSpecies.length - 1);
       const [pickedSpecies] = availableSpecies.splice(index, 1);
