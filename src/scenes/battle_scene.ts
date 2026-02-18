@@ -29,9 +29,9 @@ import {
   getPlayerState,
   getPlayerPartyCondition,
   getPlayerPartyProgress,
+  healPlayerParty,
   isTrainerDefeated,
   markTrainerDefeated,
-  setPlayerPartyCondition,
   setPlayerPartyProgress,
 } from '../player/player_model';
 
@@ -423,23 +423,10 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    this.persistPlayerPartyCondition();
+    healPlayerParty();
     this.scene.start('WorldScene', {
       recentBattleTrainerId: this.opponentTrainerId,
     });
-  }
-
-  private persistPlayerPartyCondition(): void {
-    if (!this.playerTrainer) {
-      return;
-    }
-
-    setPlayerPartyCondition(
-      this.playerTrainer.party.map((pokemon) => ({
-        hpRatio: pokemon.maxHp > 0 ? pokemon.hp / pokemon.maxHp : 0,
-        status: pokemon.status,
-      }))
-    );
   }
 
   private bindButtonActivation(
@@ -811,7 +798,7 @@ export class BattleScene extends Phaser.Scene {
     this.setButtonsEnabled(false);
     this.clearMoveButtons();
 
-    this.persistPlayerPartyCondition();
+    healPlayerParty();
 
     let rewardMessage = '';
     let levelUpLogMessage: string | undefined;
