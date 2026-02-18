@@ -74,6 +74,7 @@ export class BattleScene extends Phaser.Scene {
   private opponentSprite?: Phaser.GameObjects.Image;
   private moveButtons: Phaser.GameObjects.Container[] = [];
   private continueButton?: Phaser.GameObjects.Container;
+  private exitButton?: Phaser.GameObjects.Container;
   private isResolving = false;
   private sfxEnabled = true;
   private opponentTrainerId?: string;
@@ -168,6 +169,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.renderStatusPanels();
     this.renderMoveButtons();
+    this.renderExitButton();
     this.updateHpBars();
 
     this.logText = this.add
@@ -184,6 +186,8 @@ export class BattleScene extends Phaser.Scene {
     this.clearMoveButtons();
     this.continueButton?.destroy();
     this.continueButton = undefined;
+    this.exitButton?.destroy();
+    this.exitButton = undefined;
     this.playerTrainer = undefined;
     this.opponentTrainer = undefined;
     this.playerPokemon = undefined;
@@ -370,6 +374,42 @@ export class BattleScene extends Phaser.Scene {
       );
       container.on('pointerdown', () => this.handlePlayerMove(move));
       this.moveButtons.push(container);
+    });
+  }
+
+  private renderExitButton(): void {
+    const buttonWidth = 160;
+    const buttonHeight = 44;
+    const x = this.scale.width - buttonWidth - 24;
+    const y = 24;
+
+    const button = this.add
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0x475569)
+      .setOrigin(0)
+      .setStrokeStyle(2, 0x94a3b8);
+    const label = this.add.text(22, 10, 'Exit Battle', {
+      fontSize: '18px',
+      color: '#f8fafc',
+    });
+
+    const container = this.add.container(x, y, [button, label]);
+    container.setSize(buttonWidth, buttonHeight);
+    container.setDepth(10);
+    container.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, buttonWidth, buttonHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+    container.on('pointerdown', () => this.exitBattle());
+    this.exitButton = container;
+  }
+
+  private exitBattle(): void {
+    if (this.isResolving) {
+      return;
+    }
+
+    this.scene.start('WorldScene', {
+      recentBattleTrainerId: this.opponentTrainerId,
     });
   }
 
@@ -726,6 +766,8 @@ export class BattleScene extends Phaser.Scene {
     this.isResolving = true;
     this.setButtonsEnabled(false);
     this.clearMoveButtons();
+    this.exitButton?.destroy();
+    this.exitButton = undefined;
 
     if (this.playerTrainer) {
       setPlayerPartyCondition(
@@ -887,6 +929,13 @@ export class BattleScene extends Phaser.Scene {
         button.input.enabled = enabled;
       }
     });
+
+    if (this.exitButton) {
+      this.exitButton.setAlpha(enabled ? 1 : 0.5);
+      if (this.exitButton.input) {
+        this.exitButton.input.enabled = enabled;
+      }
+    }
   }
 
   private playSfx(name: 'hit' | 'faint'): void {
