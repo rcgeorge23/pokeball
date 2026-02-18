@@ -96,14 +96,16 @@ export interface GenerateMapOptions {
 const MAX_GENERATION_ATTEMPTS = 10;
 const MIN_REACHABLE_TRAINERS = CHAMPION_GATE_REQUIRED_DEFEATS;
 const NODE_CLEARING_RADIUS = 2;
-const CORRIDOR_HALF_WIDTH = 1;
+const CORRIDOR_HALF_WIDTH = 2;
+const CORRIDOR_ROOM_INTERVAL = 8;
+const CORRIDOR_ROOM_HALF_SIZE = 3;
 const ROOM_SIZE_BY_NODE_TYPE: Record<NavigationNodeType, { width: number; height: number }> = {
-  start: { width: 7, height: 7 },
-  hub: { width: 9, height: 9 },
-  bossGate: { width: 7, height: 7 },
-  championArena: { width: 11, height: 9 },
-  encounter: { width: 7, height: 7 },
-  loot: { width: 6, height: 6 },
+  start: { width: 11, height: 11 },
+  hub: { width: 15, height: 13 },
+  bossGate: { width: 11, height: 11 },
+  championArena: { width: 17, height: 15 },
+  encounter: { width: 11, height: 11 },
+  loot: { width: 9, height: 9 },
 };
 
 export function generateMapFromSeed(
@@ -873,29 +875,41 @@ function carveNavigationRoutes(
     axis: 'horizontal' | 'vertical',
     halfWidth: number
   ): void => {
+    const maybeCarveCorridorRoom = (x: number, y: number, stepIndex: number): void => {
+      if (stepIndex === 0 || stepIndex % CORRIDOR_ROOM_INTERVAL !== 0) {
+        return;
+      }
+
+      carveRoom(
+        { x, y },
+        CORRIDOR_ROOM_HALF_SIZE * 2 + 1,
+        CORRIDOR_ROOM_HALF_SIZE * 2 + 1
+      );
+    };
+
     if (axis === 'horizontal') {
       const direction = from.x <= to.x ? 1 : -1;
+      let stepIndex = 0;
       for (let x = from.x; x !== to.x + direction; x += direction) {
         carveTile(x, from.y, halfWidth);
+        maybeCarveCorridorRoom(x, from.y, stepIndex);
+        stepIndex += 1;
       }
       return;
     }
 
     const direction = from.y <= to.y ? 1 : -1;
+    let stepIndex = 0;
     for (let y = from.y; y !== to.y + direction; y += direction) {
       carveTile(from.x, y, halfWidth);
+      maybeCarveCorridorRoom(from.x, y, stepIndex);
+      stepIndex += 1;
     }
   };
 
   for (const node of navigationGraph.nodes) {
     const baseRoomSize = ROOM_SIZE_BY_NODE_TYPE[node.type];
-    const widthVariation = rng.nextInt(-1, 1);
-    const heightVariation = rng.nextInt(-1, 1);
-    carveRoom(
-      node,
-      baseRoomSize.width + widthVariation,
-      baseRoomSize.height + heightVariation
-    );
+    carveRoom(node, baseRoomSize.width, baseRoomSize.height);
 
     const clearingRadius = rng.nextFloat() < 0.25 ? NODE_CLEARING_RADIUS + 1 : NODE_CLEARING_RADIUS;
     carveTile(node.x, node.y, clearingRadius);
@@ -917,12 +931,8 @@ function carveNavigationRoutes(
     carvePathSegment(fromNode, bendPoint, horizontalFirst ? 'horizontal' : 'vertical', CORRIDOR_HALF_WIDTH);
     carvePathSegment(bendPoint, toNode, horizontalFirst ? 'vertical' : 'horizontal', CORRIDOR_HALF_WIDTH);
 
-    if (edge.kind === 'optional' && rng.nextFloat() > 0.5) {
-      carveRoom(
-        bendPoint,
-        5 + rng.nextInt(0, 1) * 2,
-        5 + rng.nextInt(0, 1) * 2
-      );
+    if (edge.kind === 'optional' && rng.nextFloat() > 0.35) {
+      carveRoom(bendPoint, 9, 9);
     }
   }
 
