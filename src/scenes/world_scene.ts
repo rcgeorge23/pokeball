@@ -720,7 +720,13 @@ export class WorldScene extends Phaser.Scene {
       this.startNearbyBattle();
     };
 
+    const onBattlePointerDown = (event: PointerEvent) => {
+      event.preventDefault();
+      onBattlePress();
+    };
+
     this.battleButton.addEventListener('click', onBattlePress);
+    this.battleButton.addEventListener('pointerdown', onBattlePointerDown);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       if (!this.battleButton) {
@@ -730,6 +736,7 @@ export class WorldScene extends Phaser.Scene {
       this.battleButton.style.display = 'none';
       this.battleButton.textContent = 'Battle';
       this.battleButton.removeEventListener('click', onBattlePress);
+      this.battleButton.removeEventListener('pointerdown', onBattlePointerDown);
       this.battleButton = undefined;
     });
   }
